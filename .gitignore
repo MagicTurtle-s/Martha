@@ -1,0 +1,38 @@
+# Claude Code artifacts
+.claude/plans/
+
+# User configuration (contains personal data)
+.claude/skills/martha/config.md
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Sensitive data (should never be committed)
+*.env
+.env.*
+credentials.json
+secrets.json
+
+# Node modules (if any tooling is added)
+node_modules/
+
+# Python (if any tooling is added)
+__pycache__/
+*.pyc
+.venv/
+venv/
