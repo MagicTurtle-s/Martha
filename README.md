@@ -22,7 +22,7 @@ Automated weekly meal planning and grocery shopping workflow powered by Claude C
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/yourusername/martha.git
+   git clone https://github.com/MagicTurtle-s/martha.git
    cd martha
    ```
 
