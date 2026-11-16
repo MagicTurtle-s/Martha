@@ -392,26 +392,46 @@ def _read_context_file(path):
 
 # ---- First-time setup (VOICE-SETUP.md step 6) ----------------------------------------------------
 
-def setup():
+def setup(from_env=False):
     """Asks for this computer's AWS key (the secret hidden as it is typed), saves voice-credentials.json,
-    then checks it. Nothing typed is printed back."""
-    global CREDS_PATH, _C
+    then checks it. Nothing typed is printed back.
+
+    With from_env (`setup --from-env`, used by alexa/setup/voice-setup.sh), the key comes from
+    MARTHA_VOICE_KEY_ID and MARTHA_VOICE_SECRET (region and table from MARTHA_VOICE_REGION and
+    MARTHA_VOICE_TABLE, else the defaults), so it goes from AWS into the file without being shown."""
+    if from_env:
+        key_id = os.environ.get("MARTHA_VOICE_KEY_ID", "").strip()
+        secret = os.environ.get("MARTHA_VOICE_SECRET", "").strip()
+        region = os.environ.get("MARTHA_VOICE_REGION", "").strip() or DEFAULT_REGION
+        table = os.environ.get("MARTHA_VOICE_TABLE", "").strip() or DEFAULT_TABLE
+        return _save_key(key_id, secret, region, table)
     print("Voice notes: this computer's AWS key (VOICE-SETUP.md step 6). The secret isn't shown as you type it.")
     key_id = input("AWS access key id: ").strip()
+    _check_key_id(key_id)
+    secret = getpass.getpass("AWS secret access key (hidden): ").strip()
+    region = input(f"Region [{DEFAULT_REGION}]: ").strip() or DEFAULT_REGION
+    table = input(f"Table [{DEFAULT_TABLE}]: ").strip() or DEFAULT_TABLE
+    _save_key(key_id, secret, region, table)
+
+
+def _check_key_id(key_id):
     if key_id.startswith("ASIA"):
         raise SystemExit("that is a temporary key, which stops working within hours: use the household's PC key, "
                          "which starts with AKIA (VOICE-SETUP.md step 6)")
     if not KEY_ID_RE.fullmatch(key_id):
         raise SystemExit("that doesn't look like an access key id (capital letters and digits, starting with AKIA): "
                          "copy it again and run setup again (VOICE-SETUP.md step 6)")
-    secret = getpass.getpass("AWS secret access key (hidden): ").strip()
+
+
+def _save_key(key_id, secret, region, table):
+    """Validates the four values, saves voice-credentials.json, and checks it with AWS."""
+    global CREDS_PATH, _C
+    _check_key_id(key_id)
     if not secret or any(ch.isspace() for ch in secret):
         raise SystemExit("no secret access key was entered: run setup again and paste it (VOICE-SETUP.md step 6)")
-    region = input(f"Region [{DEFAULT_REGION}]: ").strip() or DEFAULT_REGION
     if not REGION_RE.fullmatch(region):
         raise SystemExit(f"{region} doesn't look like an AWS region (such as us-east-1): run setup again "
                          "(VOICE-SETUP.md step 6)")
-    table = input(f"Table [{DEFAULT_TABLE}]: ").strip() or DEFAULT_TABLE
     if not TABLE_RE.fullmatch(table):
         raise SystemExit("a table name is 3 to 255 letters, digits, '_', '-' or '.': run setup again "
                          "(VOICE-SETUP.md step 6)")
@@ -426,6 +446,7 @@ def setup():
 
 USAGE = """usage: python3 martha_voice.py <command>
   setup                 save this computer's AWS key, then check it (VOICE-SETUP.md step 6)
+  setup --from-env      the same, with the key from MARTHA_VOICE_KEY_ID / MARTHA_VOICE_SECRET
   check                 prove the key, the region and the table work
   notes                 every waiting voice note, oldest first, as JSON
   done <id> [<id> ...]  delete the notes Martha has filed (ids from `notes`)
@@ -437,6 +458,8 @@ def main(argv=None):
     cmd, rest = (argv[0], argv[1:]) if argv else ("", [])
     if cmd == "setup" and not rest:
         setup()
+    elif cmd == "setup" and rest == ["--from-env"]:
+        setup(from_env=True)
     elif cmd == "check" and not rest:
         check(); print("Voice notes work: the key, the region and the table answered.")
     elif cmd == "notes" and not rest:

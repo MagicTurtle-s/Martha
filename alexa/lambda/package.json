@@ -1,0 +1,21 @@
+{
+  "name": "martha-meal-skill",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Back end of the Martha Meal Alexa skill: takes a household's voice notes, reads them back through Claude, and saves them for the next Martha run.",
+  "main": "index.js",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
+    "@aws-sdk/client-dynamodb": "^3.700.0",
+    "@aws-sdk/client-ssm": "^3.700.0",
+    "ask-sdk-core": "^2.14.0",
+    "zod": "^4.6.7"
+  }
+}

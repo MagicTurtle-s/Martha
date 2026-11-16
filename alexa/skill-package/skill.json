@@ -1,0 +1,34 @@
+{
+  "manifest": {
+    "manifestVersion": "1.0",
+    "publishingInformation": {
+      "locales": {
+        "en-US": {
+          "name": "Martha Meal",
+          "summary": "Leave a note for Martha, your household's meal planner.",
+          "description": "A private skill for one household. Say how a meal went, what you're out of, or what you'd like more of; Martha files it at the next planning run.",
+          "examplePhrases": [
+            "Alexa, tell Martha Meal we're out of ground cumin",
+            "Alexa, use Martha Meal to note that the chili was a hit",
+            "Alexa, open Martha Meal"
+          ],
+          "keywords": ["meal planning", "grocery", "notes"]
+        }
+      },
+      "isAvailableWorldwide": false,
+      "distributionCountries": ["US"],
+      "testingInstructions": "Private household skill; not for publication."
+    },
+    "privacyAndCompliance": {
+      "allowsPurchases": false,
+      "usesPersonalInfo": false,
+      "isChildDirected": false,
+      "isExportCompliant": true,
+      "containsAds": false,
+      "locales": { "en-US": {} }
+    },
+    "apis": {
+      "custom": {}
+    }
+  }
+}

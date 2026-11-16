@@ -1,0 +1,62 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "martha meal",
+      "intents": [
+        { "name": "AMAZON.CancelIntent", "samples": [] },
+        { "name": "AMAZON.HelpIntent", "samples": [] },
+        { "name": "AMAZON.StopIntent", "samples": [] },
+        { "name": "AMAZON.NavigateHomeIntent", "samples": [] },
+        {
+          "name": "NoteIntent",
+          "slots": [{ "name": "note", "type": "NOTE_TEXT" }],
+          "samples": [
+            "{note}",
+            "that {note}",
+            "to remember {note}",
+            "remember {note}",
+            "note {note}",
+            "a note {note}",
+            "to note that {note}",
+            "note that {note}",
+            "say {note}",
+            "skill {note}"
+          ]
+        }
+      ],
+      "types": [
+        {
+          "name": "NOTE_TEXT",
+          "values": [
+            { "name": { "value": "cumin" } },
+            { "name": { "value": "paper towels" } },
+            { "name": { "value": "too spicy" } },
+            { "name": { "value": "out of milk" } },
+            { "name": { "value": "dinner was great" } },
+            { "name": { "value": "the salad was a miss" } },
+            { "name": { "value": "add paper towels" } },
+            { "name": { "value": "buy more bananas" } },
+            { "name": { "value": "we are low on eggs" } },
+            { "name": { "value": "the chicken was dry" } },
+            { "name": { "value": "make the pasta again" } },
+            { "name": { "value": "we're out of ground cumin" } },
+            { "name": { "value": "the kids loved the tacos" } },
+            { "name": { "value": "no more mushrooms please" } },
+            { "name": { "value": "less onion in the soup next time" } },
+            { "name": { "value": "never make that lentil soup again" } },
+            { "name": { "value": "we have leftover rice to use up" } },
+            { "name": { "value": "sam really liked the chili tonight" } },
+            { "name": { "value": "we want more sheet pan dinners" } },
+            { "name": { "value": "get the gluten free pasta again it was good" } },
+            { "name": { "value": "sam doesn't like peppers so keep them on the side" } },
+            { "name": { "value": "more vegetarian meals next week please" } },
+            { "name": { "value": "the toddler ate every bite of the meatballs" } },
+            { "name": { "value": "we're almost out of olive oil and coffee" } },
+            { "name": { "value": "the white chicken chili was a hit with everyone" } },
+            { "name": { "value": "skip fish this week we're eating out friday" } }
+          ]
+        }
+      ]
+    }
+  }
+}

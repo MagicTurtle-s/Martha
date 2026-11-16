@@ -1,0 +1,181 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Martha voice notes: a small notes table, the Martha Meal skill's back end, a narrow key user for
+  the household's computer, and a monthly budget alert. Everything here stays inside the AWS free
+  tier at household volume. Guide: .claude/skills/martha/VOICE-SETUP.md.
+
+Parameters:
+  AlexaSkillId:
+    Type: String
+    AllowedPattern: '^amzn1\.ask\.skill\.[0-9a-f-]+$'
+    Description: The Martha Meal skill's id from the Alexa developer console.
+  BudgetEmail:
+    Type: String
+    AllowedPattern: '^[^@\s]+@[^@\s]+\.[^@\s]+$'
+    Description: Where AWS sends the budget alert if the account ever costs more than $1 in a month.
+  TableName:
+    Type: String
+    Default: martha-voice
+  KeyParameter:
+    Type: String
+    Default: /martha-voice/anthropic-api-key
+    Description: The Parameter Store name that holds the Anthropic API key (a SecureString the setup writes).
+
+Resources:
+  NotesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref TableName
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+
+  # The skill's back end may only add notes, read the week's context, and read its Anthropic key.
+  SkillRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: martha-voice-skill
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: AddNotes
+                Effect: Allow
+                Action: dynamodb:PutItem
+                Resource: !GetAtt NotesTable.Arn
+                Condition:
+                  ForAllValues:StringEquals:
+                    dynamodb:LeadingKeys: [note]
+              - Sid: ReadContext
+                Effect: Allow
+                Action: dynamodb:GetItem
+                Resource: !GetAtt NotesTable.Arn
+                Condition:
+                  ForAllValues:StringEquals:
+                    dynamodb:LeadingKeys: [context]
+              - Sid: ReadAnthropicKey
+                Effect: Allow
+                Action: ssm:GetParameter
+                Resource: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${KeyParameter}'
+              - Sid: DecryptAnthropicKey
+                Effect: Allow
+                Action: kms:Decrypt
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    kms:ViaService: !Sub 'ssm.${AWS::Region}.amazonaws.com'
+
+  SkillFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: martha-meal-skill
+      Description: Martha Meal skill back end (code is uploaded by the setup, alexa/lambda).
+      Runtime: nodejs22.x
+      Architectures: [arm64]
+      Handler: index.handler
+      MemorySize: 512
+      Timeout: 8
+      Role: !GetAtt SkillRole.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref NotesTable
+          SKILL_ID: !Ref AlexaSkillId
+          KEY_PARAMETER: !Ref KeyParameter
+          MODEL: claude-haiku-5-5
+      Code:
+        # A placeholder until the setup uploads alexa/lambda; later stack updates leave the uploaded code alone.
+        ZipFile: |
+          exports.handler = async () => ({ version: '1.0', response: { outputSpeech: { type: 'PlainText', text: 'Martha Meal is still being set up.' }, shouldEndSession: true } });
+
+  AlexaInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt SkillFunction.Arn
+      Principal: alexa-appkit.amazon.com
+      EventSourceToken: !Ref AlexaSkillId
+
+  # The household's computer may only read and delete notes and write the week's context record.
+  PcUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: martha-voice-pc
+      Policies:
+        - PolicyName: martha-voice-pc
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: ReadAndDeleteNotes
+                Effect: Allow
+                Action:
+                  - dynamodb:Query
+                  - dynamodb:DeleteItem
+                Resource: !GetAtt NotesTable.Arn
+                Condition:
+                  ForAllValues:StringEquals:
+                    dynamodb:LeadingKeys: [note]
+              - Sid: WriteContext
+                Effect: Allow
+                Action: dynamodb:PutItem
+                Resource: !GetAtt NotesTable.Arn
+                Condition:
+                  ForAllValues:StringEquals:
+                    dynamodb:LeadingKeys: [context]
+
+  MonthlyBudget:
+    Type: AWS::Budgets::Budget
+    Properties:
+      Budget:
+        BudgetName: martha-voice-monthly
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit:
+          Amount: 1
+          Unit: USD
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 100
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref BudgetEmail
+        - Notification:
+            NotificationType: FORECASTED
+            ComparisonOperator: GREATER_THAN
+            Threshold: 100
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref BudgetEmail
+
+Outputs:
+  FunctionArn:
+    Value: !GetAtt SkillFunction.Arn
+  TableName:
+    Value: !Ref NotesTable
+  PcUserName:
+    Value: !Ref PcUser
+  KeyParameter:
+    Value: !Ref KeyParameter

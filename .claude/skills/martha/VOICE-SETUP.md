@@ -19,34 +19,104 @@ list, a taste to lean toward), asks about anything unclear, and deletes each not
 filed. Without this setup Martha works exactly as before.
 
 **You need:** an Echo or the Alexa app on the household's Amazon account, an AWS account, an
-Anthropic API key, Python 3.9 or newer on this computer, and the steps below. The commands say
-`python`; on a Mac or Linux type `python3`.
+Anthropic API key, Python 3.9 or newer and Node.js 22 or newer on this computer, and the steps
+below. The commands run from the folder you cloned Martha into. They say `python`; on a Mac or
+Linux type `python3`.
 
-## 1. Create the household's AWS account
+**What it costs:** about $0 a month on AWS at household use (a $1 budget alert emails you if
+that's ever wrong), and about 15 cents a month of Anthropic API use for the read-back at ten
+notes a day.
 
-Written in the next phase.
+## 1. Make the Alexa skill "Martha Meal"
 
-## 2. Deploy the AWS pieces: the notes table, the note-taker and this computer's key
+The skill is private to your household: it is never published, so only devices on your Amazon
+account can use it.
 
-Written in the next phase.
+1. Sign in at [developer.amazon.com](https://developer.amazon.com) with the household's Amazon
+   account. If it asks to register, choose an individual (sole proprietor) account; no business is
+   needed, and nothing is published.
+2. Install the Alexa command-line tool and sign it in. When it asks whether to link an AWS
+   account, answer **No**.
 
-## 3. Make the Alexa skill "Martha Meal"
+   ```
+   npm install -g ask-cli
+   ask configure
+   ```
 
-Written in the next phase.
+3. Create the skill and give it its words. The first command prints the skill id
+   (`amzn1.ask.skill....`); put it in the second, and keep it for step 2.
 
-## 4. Give the note-taker an Anthropic API key
+   ```
+   ask smapi create-skill-for-vendor --manifest file:alexa/skill-package/skill.json
+   ask smapi set-interaction-model --skill-id <skill id> --stage development --locale en-US --interaction-model file:alexa/skill-package/interactionModels/custom/en-US.json
+   ```
 
-Written in the next phase.
+## 2. The AWS pieces: the account and the setup script
+
+1. **The account.** Sign up at [portal.aws.amazon.com/billing/signup](https://portal.aws.amazon.com/billing/signup)
+   and choose the **Paid plan**: the Free plan closes the account after six months and deletes it
+   90 days later, and voice notes would stop with it. Everything here stays inside the amounts AWS
+   never charges for at household use.
+2. **The AWS command-line tool.** On Windows: `winget install Amazon.AWSCLI`. On a Mac or Linux,
+   AWS's installer from [aws.amazon.com/cli](https://aws.amazon.com/cli/).
+3. **The setup script.** It walks you through the rest in six short stages, and is safe to re-run.
+   On Windows, run it in Git Bash (or `"C:\Program Files\Git\bin\bash.exe"` from PowerShell); on a
+   Mac or Linux, in Terminal:
+
+   ```
+   bash alexa/setup/voice-setup.sh <skill id>
+   ```
+
+   | Stage | What happens |
+   |---|---|
+   | 1. AWS account | Confirms you have one (above). |
+   | 2. Sign-in | `aws login` opens the browser; this computer gets a temporary sign-in, never a permanent admin key. |
+   | 3. Build | Makes the notes table, the skill's back end, a key user for this computer that can only read and delete notes and write the week's context record, and a $1 monthly budget alert to the email you give (`alexa/infra/martha-voice.yaml`). |
+   | 4. Anthropic key | Step 4 below. |
+   | 5. This computer's key | Makes the computer's key and saves it straight into `voice-credentials.json` (step 6) without showing it. |
+   | 6. Connect | Uploads the skill's code and points the Martha Meal skill at it (step 3). |
+
+## 3. What "connect" did
+
+The skill you made in step 1 now sends each note to the back end in your AWS account. The back
+end asks Claude what the note means, saves it to the notes table with the words Alexa heard, and
+tells Alexa what to say back. If Claude doesn't answer in time, the note is saved as said and
+Alexa answers "Got it, I'll pass on: ..."; Martha asks about it at the next run. Nothing has to be
+done here unless the setup script's last stage failed: then run the script again.
+
+## 4. The Anthropic API key for the read-back
+
+Stage 4 of the setup script opens [console.anthropic.com](https://console.anthropic.com/settings/keys).
+Add a small prepaid amount under Billing (five dollars lasts a long time here) and leave
+auto-reload off, so the bill can't grow on its own. Create a key named `martha-meal`, and paste it
+into the script, where it is hidden as you type. The script saves it, encrypted, in your AWS
+account where only the skill's back end can read it. To replace the key later, run the script
+again; at the other stages, press Enter to keep what is there.
 
 ## 5. Leave a first note
 
-Written in the next phase.
+Say: "Alexa, tell Martha Meal we're out of ground cumin." Alexa answers with what she
+understood, such as "Got it: ground cumin goes on next week's list." Then check that it arrived:
+
+```
+python .claude/skills/martha/scripts/martha_voice.py notes
+```
+
+| Alexa says | It means |
+|---|---|
+| What she understood | Everything works. |
+| "Got it, I'll pass on: ..." | The note is saved, but the read-back isn't working: re-run the script and redo stage 4. |
+| She starts a text message | Say "Alexa, use Martha Meal to ..." instead (see the top of this page). |
+| "There was a problem with the requested skill's response" | The skill and the back end aren't connected: re-run the script. |
 
 ## 6. Give this computer its key
 
-Step 2 made an access key for this computer: an access key id (20 capital letters and digits,
-starting with `AKIA`) and a secret access key. This key can only read and delete notes and write
-the week's context record (below); it can't reach anything else in the account.
+The setup script (stage 5) already did this on the computer that ran it. Do it by hand on another
+computer, or after replacing the key: in the AWS console, open IAM > Users > `martha-voice-pc` >
+Security credentials > Create access key (choose "Application running outside AWS"). That gives
+an access key id (20 capital letters and digits, starting with `AKIA`) and a secret access key.
+This key can only read and delete notes and write the week's context record (below); it can't
+reach anything else in the account.
 
 Run this in a terminal on this computer (PowerShell, or Terminal on a Mac), from the folder you
 cloned Martha into. Type the secret there, never into a chat with Claude: Martha never asks for
@@ -61,10 +131,10 @@ things:
 
 | It asks | You give it |
 |---|---|
-| AWS access key id | The access key id from step 2 |
-| AWS secret access key (hidden) | The secret from step 2. Nothing shows as you paste it; that is expected. Press Enter. |
-| Region [us-east-1] | Enter, unless step 2 put the table in another region |
-| Table [martha-voice] | Enter, unless step 2 gave the table another name |
+| AWS access key id | The access key id from the AWS console (above) |
+| AWS secret access key (hidden) | The secret from the AWS console. Nothing shows as you paste it; that is expected. Press Enter. |
+| Region [us-east-1] | Enter, unless the table was put in another region |
+| Table [martha-voice] | Enter, unless the table was given another name |
 
 It saves `voice-credentials.json` in your profile folder, beside `martha-config.md` (`PROFILE.md`
 says where that is; on macOS and Linux only you can read the file), then asks AWS whether the key
@@ -87,7 +157,7 @@ If it says something else, the first words tell you what to do:
 |---|---|
 | voice-credentials.json not found | Run `setup` (above). |
 | AWS didn't accept this computer's key | The key id or secret was mistyped: run `setup` again. |
-| this computer's key lacks permission | That is a different AWS key, perhaps your own: run `setup` again with the key made for this computer in step 2. |
+| this computer's key lacks permission | That is a different AWS key, perhaps your own: run `setup` again with the key made for `martha-voice-pc` (above). |
 | there is no table ... in ... | The region or table name doesn't match step 2: run `setup` again. |
 | AWS says this computer's clock is wrong | Set the computer's clock, then `check`. |
 | AWS didn't answer, or AWS is busy or failing | No internet, or AWS is having trouble. Martha plans without the notes this time; they wait for the next run. |

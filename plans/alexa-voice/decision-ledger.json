@@ -292,6 +292,20 @@
           "owner": "household",
           "notes": "From CAPTURE-1, 2026-11-16. His asides: \"With #2 how is Martha lost? Could the phrase to activate be Hey Martha, set through Alexa's setting? Or at least Alexa, Tell Martha...?\" then \"I want #1 [routine: Alexa, tell Martha] and am expecting to be able to include the context in the same breath, Alexa, Tell Martha to add Cumin. Alternatively, [we] use a list called grocery. If claude/martha is able to API read that list, then it's a matter of Claude/Martha being able to see what's there and when it was added.\" Findings: custom wake words are not available (fixed list; brand-only custom assistants); Amazon ended outside access to Alexa lists July 1, 2024 (developer.amazon.com deprecated-features page), so the grocery list stays browser-read by Martha; a routine fires only on its exact phrase, so it cannot carry the note in the same breath; \"tell martha's kitchen ...\" is taken as a device-group announcement; \"use martha meals to add cumin\" reaches the skill as \"add cumin\" (tested in the console simulator). His words after the phone test: \"They came back clean once I dropped the s and only said Martha Meal. I was also able to say Alexa, Tell Martha Meal...\"",
           "amendedAt": "2026-11-16"
+        },
+        {
+          "id": "AWS-3",
+          "q": "Which AWS plan at sign-up?",
+          "options": [
+            "Paid plan: nothing expires; card at sign-up; expected bill $0 with the $1 budget alert",
+            "Free plan: no card now, but the account stops after 6 months and is deleted 90 days later unless upgraded"
+          ],
+          "recommended": "Paid plan",
+          "answer": "Paid plan.",
+          "status": "answered",
+          "answeredAt": "2026-11-16",
+          "owner": "household",
+          "notes": "Free plan rules per AWS (2025-07 announcement and Free Tier FAQs). Also answered: install the AWS command-line tool with winget (yes)."
         }
       ]
     }

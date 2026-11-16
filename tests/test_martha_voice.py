@@ -286,6 +286,25 @@ class SetupTests(unittest.TestCase):
         self.assertIn("key id or secret is wrong", str(e.exception)); self.assertNotIn(SECRET, str(e.exception))
         self.assertTrue((self.dir / "voice-credentials.json").exists())  # saved, so a re-run of setup replaces it
 
+    def test_setup_from_env_saves_the_key_without_prompting_or_showing_it(self):
+        out, err = io.StringIO(), io.StringIO()
+        keys = {"MARTHA_VOICE_KEY_ID": KEY_ID, "MARTHA_VOICE_SECRET": SECRET, "MARTHA_VOICE_TABLE": "our-notes"}
+        with mock.patch.dict(os.environ, keys), mock.patch("builtins.input", side_effect=AssertionError("prompted")), \
+                mock.patch.object(self.v.getpass, "getpass", side_effect=AssertionError("prompted")), \
+                mock.patch.object(self.v.urllib.request, "urlopen", return_value=Reply({"Items": []})) as urlopen, \
+                contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            self.assertEqual(self.v.main(["setup", "--from-env"]), 0)
+        saved = json.loads((self.dir / "voice-credentials.json").read_text())
+        self.assertEqual(saved, {"aws_access_key_id": KEY_ID, "aws_secret_access_key": SECRET, "region": "us-east-1", "table": "our-notes"})
+        self.assertEqual(urlopen.call_count, 1)
+        shown = out.getvalue() + err.getvalue()
+        self.assertNotIn(SECRET, shown); self.assertNotIn(KEY_ID, shown)
+
+    def test_setup_from_env_with_nothing_set_saves_nothing(self):
+        with mock.patch.dict(os.environ, {"MARTHA_VOICE_KEY_ID": "", "MARTHA_VOICE_SECRET": ""}), self.assertRaises(SystemExit):
+            self.v.main(["setup", "--from-env"])
+        self.assertFalse((self.dir / "voice-credentials.json").exists())
+
     def test_no_cowork_folder_is_created_on_a_normal_machine(self):
         if os.path.isdir(self.v.COWORK_OUT):
             self.skipTest("running inside a Cowork session")

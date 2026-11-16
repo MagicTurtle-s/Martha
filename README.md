@@ -67,6 +67,11 @@ The profile is on this computer only (`~/.martha`), or in a cloud folder that yo
   PINTEREST-SETUP.md       optional Pinterest setup
   VOICE-SETUP.md           optional voice notes through Alexa
   PROFILE.md               where your household's profile lives
+alexa/                     optional voice notes: the Martha Meal skill, its AWS pieces, the setup script
+  skill-package/           the skill's name and the words it listens for
+  lambda/                  the skill's back end (Node.js): Claude's read-back, saving the note
+  infra/martha-voice.yaml  the AWS pieces: notes table, back end, this computer's key user, budget alert
+  setup/voice-setup.sh     the guided AWS setup (VOICE-SETUP.md step 2)
 mods/chef-clawd/           Chef Clawd, an optional Claude Code mod
 .claude-plugin/            the marketplace file that installs Chef Clawd
 docs/chef-clawd/           the GIF above

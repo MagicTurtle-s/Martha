@@ -143,6 +143,8 @@ const wordRe = (term) => new RegExp(`(?<![A-Za-z0-9])${term.replace(/[.*+?^${}()
         const value = m[group] ?? m[0];
         if (group && (isPlaceholder(value) || isName(value))) continue;
         if (/EXAMPLE(KEY)?$/.test(value)) continue;
+        // Package checksums (npm's "integrity": "sha512-...") are hashes of public files, not secrets.
+        if (what.startsWith('a long') && /^sha(1|256|384|512)-/.test(value)) continue;
         // A token mixes cases and digits; an alphabet written out (a base64 table) is not one.
         if (what.startsWith('a long') && (!(/[A-Z]/.test(value) && /[a-z]/.test(value) && /[0-9]/.test(value)) || /ABCDEFGHIJ|abcdefghij/.test(value))) continue;
         fails.push(`${p}:${lineOf(body, m.index)} ${what}`);
