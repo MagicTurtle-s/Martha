@@ -270,11 +270,26 @@
           "q": "Does a whole spoken sentence reach the skill intact?",
           "options": [],
           "recommended": null,
-          "answer": null,
-          "status": "open",
-          "answeredAt": null,
-          "owner": "Claude",
-          "notes": "Known risk, not a question: classic skills receive the words Alexa fills into a slot, not a raw transcript. First build step tests a catch-all slot with real notes in the simulator and on the phone. If wording gets clipped, loose phrasing (SUCC-1 'whole house') suffers whichever READ-2 answer."
+          "answer": "Yes, once the skill is reached: 15 of 15 typed notes arrived whole in the console simulator (one changed \"one\" to \"1\"), including 12-word sentences, names, and shopping-style notes. The catch is reaching the skill in one breath on Alexa+: \"tell/ask Martha Meals <note>\" becomes a text message to a contact named Martha Meals, and a non-person name (\"meal notes\") is swallowed by Alexa's own Remember This feature. These reach the skill: \"use Martha Meals to note that <note>\" (clean), \"open Martha Meals and tell it <note>\" and \"tell Martha Meals skill <note>\" (a leading \"tell it\"/\"skill\" leaks into the note), and \"open Martha Meals\" then the note.",
+          "status": "answered",
+          "answeredAt": "2026-11-16",
+          "owner": "Claude (test)",
+          "notes": "Typed tests only, 2026-11-16, console simulator on the test skill (catch-all custom slot NOTE_TEXT, samples \"{note}\", \"that {note}\", \"remember {note}\", \"note {note}\"...). The command-line simulator (ask smapi simulate-skill) fails every one-line utterance with \"An unexpected error occurred\" and two in-session ones; the console simulator handled the same inputs, so that is a tool limit, not the skill. Spoken test on the phone still to do. Leads to NAME-3."
+        },
+        {
+          "id": "NAME-3",
+          "q": "Plain \"tell Martha Meals ...\" turns into a text message on Alexa+. Keep the name and use \"use Martha Meals to note that ...\" / \"open Martha Meals\", or try other names?",
+          "options": [
+            "\"Alexa, use Martha Meals to ...\" (one breath, tested)",
+            "Routine \"Alexa, tell Martha\" then the note (two breaths)",
+            "Grocery list as today, with Martha recording the date she first sees each item"
+          ],
+          "recommended": "\"Alexa, use Martha Meals to ...\"",
+          "answer": "Keep the name Martha Meals. One breath: \"Alexa, use Martha Meals to <note>\". Items can also keep going on the Alexa grocery list, and Martha records the date she first sees each item there. No routine.",
+          "status": "answered",
+          "answeredAt": "2026-11-16",
+          "owner": "household",
+          "notes": "From CAPTURE-1, 2026-11-16. His asides: \"With #2 how is Martha lost? Could the phrase to activate be Hey Martha, set through Alexa's setting? Or at least Alexa, Tell Martha...?\" then \"I want #1 [routine: Alexa, tell Martha] and am expecting to be able to include the context in the same breath, Alexa, Tell Martha to add Cumin. Alternatively, [we] use a list called grocery. If claude/martha is able to API read that list, then it's a matter of Claude/Martha being able to see what's there and when it was added.\" Findings: custom wake words are not available (fixed list; brand-only custom assistants); Amazon ended outside access to Alexa lists July 1, 2024 (developer.amazon.com deprecated-features page), so the grocery list stays browser-read by Martha; a routine fires only on its exact phrase, so it cannot carry the note in the same breath; \"tell martha's kitchen ...\" is taken as a device-group announcement; \"use martha meals to add cumin\" reaches the skill as \"add cumin\" (tested in the console simulator)."
         }
       ]
     }

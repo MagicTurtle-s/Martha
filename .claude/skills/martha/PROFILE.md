@@ -7,8 +7,9 @@ goes into the Martha repository.
 |---|---|
 | `martha-config.md` | Who eats what, the weekly slate, your store, budget and standing order. Written by the first-run questions; edit it directly any time. |
 | `martha-memory.json` | Every recipe Martha has planned, your ratings and past weeks. |
-| `kroger-credentials.json` | Your Kroger app and sign-in token (`KROGER-SETUP.md`). The one secret in the folder. |
+| `kroger-credentials.json` | Your Kroger app and sign-in token (`KROGER-SETUP.md`). A secret. |
 | `pinterest-credentials.json` | Optional (`PINTEREST-SETUP.md`). |
+| `voice-credentials.json` | Optional: this computer's AWS key for voice notes (`VOICE-SETUP.md`). A secret. |
 | `outputs/` | The weekly plans, one file per week. |
 
 ## Where it lives: two choices

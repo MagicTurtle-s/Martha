@@ -117,6 +117,7 @@ Loved products (Martha buys this exact item; the UPCs here are made up):
 | Plan file (always) | `outputs/martha-plan-YYYY-MM-DD.md` in the profile folder |
 | Apple Note link (optional; needs Claude in Chrome) | |
 | Alexa list name (optional; Martha reads it into the cart and checks off what it added; needs Claude in Chrome) | Shopping |
+| Voice notes (optional; needs `VOICE-SETUP.md`) | off |
 
 ## Coupons
 

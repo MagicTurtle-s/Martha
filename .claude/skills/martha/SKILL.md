@@ -19,13 +19,15 @@ household places the order.
 | `martha-memory.json` | Recipes, ratings and past weeks. Lives in the profile folder. Schema and rules: `MEMORY.md`. |
 | `kroger-credentials.json` | The household's Kroger API app and sign-in token. Lives in the profile folder. Setup: `KROGER-SETUP.md`. Without it Martha runs plan-only. |
 | `pinterest-credentials.json` | Optional, for a Pinterest recipe board. Setup: `PINTEREST-SETUP.md`. |
+| `voice-credentials.json` | Optional, for voice notes: this computer's AWS key. Lives in the profile folder. |
+| `VOICE-SETUP.md` | Optional voice notes through the household's own Alexa skill ("Alexa, use Martha Meals to add cumin"): the AWS side, the skill, and this computer's key. |
 | `config-example.md` | The config's structure, filled in for a made-up household. |
 | `PROFILE.md` | For the user: where the profile can live, how to move it, back it up or keep it in git. |
 | `QUANTITY-MATH.md` | Scaling, standing-order rules, budget arithmetic, ranked cuts. Read it before Step 5. |
 | `PREPPED-FIRST.md` | Buy the vegetable already cut. |
 | `ZOE-STANDARDS.md` | The `zoe` nutrition standard. |
 | `BROWSER-PLAYBOOK.md` | The Apple Note and the Alexa list, through Claude in Chrome. Used only when configured. |
-| `scripts/martha_kroger.py`, `scripts/martha_pinterest.py` | The API clients (Python 3, standard library only). Use them; don't rewrite them. |
+| `scripts/martha_kroger.py`, `scripts/martha_pinterest.py`, `scripts/martha_voice.py` | The API clients (Python 3, standard library only). Use them; don't rewrite them. |
 
 ## Asking questions: pop-up choices where the session has them
 
@@ -64,10 +66,10 @@ the credentials files and an `outputs/` folder. `PROFILE.md` is the user's guide
   1. If the session doesn't already list a granted folder holding `martha-config.md` or
      `martha-memory.json`, make ONE `device_request_folder_access` call for the profile folder,
      reason: "Martha needs its config, memory and credentials." Never ask again in the run.
-  2. Stage `martha-config.md`, `martha-memory.json`, `kroger-credentials.json` and
-     `pinterest-credentials.json` (whichever exist) in one `device_stage_files` call. The staged
-     copies land under `/mnt/user-data/uploads/`; the clients find their credentials there on
-     their own.
+  2. Stage `martha-config.md`, `martha-memory.json`, `kroger-credentials.json`,
+     `pinterest-credentials.json` and `voice-credentials.json` (whichever exist) in one
+     `device_stage_files` call. The staged copies land under `/mnt/user-data/uploads/`; the
+     clients find their credentials there on their own.
   3. Write back with `device_commit_files` from `/mnt/user-data/outputs/`: memory, config, the
      plan file into `outputs/`, and any credentials file a client dropped into
      `/mnt/user-data/outputs/.secrets-out/`. Don't depend on `device_bash`; it is often missing.
@@ -104,6 +106,14 @@ have history. Corrupt files and files from an older Martha: see `MEMORY.md`.
 **Pinterest** is used only when the config names a board and `pinterest-credentials.json`
 exists. **The browser** is used only when the config sets an Apple Note link or an Alexa list
 name, and, read-only, for a recipe page that refused a fetch (Step 2).
+
+**Voice notes** are on only when the config's Voice notes row says `on` AND
+`python3 scripts/martha_voice.py check` passes. Row off or blank: say nothing about voice notes
+all run. Row on but the check fails: one line with the reason and the `VOICE-SETUP.md` step it
+names ("Voice notes are on, but AWS didn't accept this computer's key: `VOICE-SETUP.md` step 6.
+Planning without them."), then run as if the row were off. The client finds its key on its own,
+exits with a one-line reason when it can't be used, and is run from the command line (from this
+skill's folder; `python` on Windows), never imported.
 
 **Using the clients.** Both find their credentials when imported, and `martha_kroger` exits if it
 finds none, so never import it in plan-only mode.
@@ -146,7 +156,7 @@ With the pop-up: This computer only · A cloud folder I already sync.
 
 ### The setup interview (only when `martha-config.md` is missing)
 
-Open with one line: "Before the first plan I need about 14 answers about your household, in four
+Open with one line: "Before the first plan I need about 15 answers about your household, in four
 short groups; I'll remember them." (If the profile question above was skipped, start it with
 "I'm Martha.") Ask one group per message. Skip anything
 the user has already told you, and accept "skip" for any question: use the default shown, or
@@ -186,7 +196,11 @@ leave that setting blank (blank switches an optional feature off).
 13. Every week you get a plan file. Martha can also copy the plan into an Apple Note (send its
     link), and read your Alexa shopping list (its name): those items go into the Kroger cart and
     are checked off in Alexa. Both need the Claude in Chrome extension (default: neither).
-14. Who clips digital coupons in the Kroger app? (Martha never clips them; it can remind you.
+14. Voice notes: anyone in the house can tell an Alexa skill of your own how a meal went, what
+    you're out of, or what you'd like more of ("Alexa, use Martha Meals to add cumin"),
+    and Martha files the notes at the next run. It needs an AWS account and a one-time setup
+    (`VOICE-SETUP.md`). Turn it on (default off)?
+15. Who clips digital coupons in the Kroger app? (Martha never clips them; it can remind you.
     Default: no reminder.)
 
 **Pop-up options for the setup questions** (see "Asking questions"; every other question is
@@ -217,7 +231,43 @@ write it into the config and, if it is missing there, into the credentials file'
 ## Step 1 — Open with one message: order, feedback, leftovers
 
 The memory file is what makes Martha better than a one-off plan. Never plan a week without it.
-First compute the read rules in `MEMORY.md`: blocked recipes, the priority pool, exclusions,
+
+**Voice notes (only when on, Step 0).** Before the read rules, fetch the waiting notes:
+`python3 scripts/martha_voice.py notes` prints them oldest first as JSON: `id`, `said_at`,
+`words` (what Alexa heard) and `understood` (the skill's reading: `kind`, `item`, `meal`,
+`person`, `sentiment`, `unclear`, `question`, `answer`). File each one now, so the read rules and
+the plan see it:
+
+- **Meal feedback:** the feedback path in `MEMORY.md`, with the note's words as the user's words
+  (kept verbatim in the recipe's `notes`, with the date). Find the recipe from `meal` and the
+  date: the week whose `week_of` is the Monday on or before `said_at`, then the weeks before it
+  (`said_at` is UTC, so an evening note can carry the next day's date). Several recipes could
+  fit, or none: don't guess, ask. Map the rating from the words with the
+  feedback path's mapping; `sentiment` is only the skill's guess. Praise for an ingredient goes
+  into `loved_ingredients`, dated. A note about a meal of the most recent placed week sets that
+  week's `feedback_collected: true`, and question 2 below then asks, in one line, only about
+  that week's other meals.
+- **Out of something:** add it to `pending_items` in memory; Step 8.1 puts it in this week's
+  cart or shopping list.
+- **A preference:** a standing household rule ("never buy olives again") goes into
+  `martha-config.md` the same turn (Step 10). A soft taste ("we'd like more sheet-pan dinners")
+  goes into memory: a dated `loved_ingredients` entry when it is about food, a cuisine or a
+  style (the praise rule makes it fade), otherwise a dated line in top-level `notes`. Never into
+  the config's Loved products table.
+- **A name** (`person`, or in the words) not in the config's Household table: ask once who that
+  is, and record the answer in the config's Household section (a nickname in that member's Notes
+  cell, anyone else as a line under the table). The note itself can still be filed.
+- **Unclear** (`unclear: true`, which includes every note the skill saved without Claude, or any
+  note you can't file without guessing): file nothing. It becomes a question in the opening
+  message, the skill's `question` if it has one. A note whose `question` already has an `answer`
+  was settled with Alexa on the spot: file it with that answer.
+
+Save memory, and only then delete the filed notes: `python3 scripts/martha_voice.py done <id>
+[<id> ...]`, with the ids of filed notes only. An unclear note stays in the table until it is
+answered. If `notes` or `done` fails, say so in one line and carry on: an undeleted note comes
+back next run, and what is already in memory isn't filed twice.
+
+Then compute the read rules in `MEMORY.md`: blocked recipes, the priority pool, exclusions,
 preferences, snack rotation, and `pinterest_last_pull`.
 
 **The week.** `week_of` is the Monday on or after today (today, if it is Monday), unless the user
@@ -247,7 +297,25 @@ question per meal, "How was <meal>?", with Loved · Fine · Never again · Didn'
 make it" answers the leftovers question for that dinner. Four questions per pop-up, so a week of
 five meals takes two.
 
+**Voice notes come first** in that message, when there are any: a short numbered list, one line
+per note, with what was said (verbatim, in quotes), how you filed it, and for an unclear note
+the question. The questions above follow it and continue its numbering, so one reply answers
+both:
+
+```
+Voice notes since last time:
+1. "we're out of ground cumin" (Sat): on this week's list.
+2. "Sam really liked the chili tonight" (Fri): Turkey Chili rated liked, Sam's words kept.
+3. "we'd like more sheet-pan dinners" (Thu): noted as a taste; it tips close calls for six weeks.
+4. "the thing from Tuesday was too salty" (Wed): which dinner was that, the tacos or the soup?
+```
+
+With the pop-up, the voice-note list goes in the message just before it, and each unclear
+note's question joins the pop-up, its likeliest answers as the choices.
+
 Handling the answers:
+- A voice-note question answered: file the note, save memory, then `done` its id. A correction
+  ("2 was the other chili"): fix memory or the config and save right then.
 - Record each rating on the feedback path in `MEMORY.md` (rating, the user's own words in
   `notes`, ingredient-level remarks into `loved_ingredients` / `disliked_ingredients`), set
   `feedback_collected: true`, and save memory right then, before planning, so a run that stops
@@ -309,7 +377,8 @@ Read `QUANTITY-MATH.md` and `PREPPED-FIRST.md` first. Recommend every slot in th
 slate: by default the salad, the new dinners (the configured count, one fewer per carried-over
 dinner) and the breakfast. Every proposal is driven by **(a)** this week's deals (cart mode),
 **(b)** what's on hand, and **(c)** memory: nothing inside the repeat window, favorites
-resurfaced, dislikes from memory and config excluded. Resurfacing a `liked` breakfast past the
+resurfaced, dislikes from memory and config excluded, and loved ingredients only as a fading
+tiebreaker, in at most one meal a week (`MEMORY.md`, read rule 4). Resurfacing a `liked` breakfast past the
 window is a good default when breakfast is made ahead. With 3+ rated recipes, say what pattern
 you see ("you rated the two sheet-pan dinners highest, so here's a third").
 
@@ -383,7 +452,8 @@ unavailable), offer to update it once the user signs in.
 ## Step 7 — The Alexa list (only when the config names one)
 
 Read every unchecked item from the configured list per `BROWSER-PLAYBOOK.md` and add them to the
-line list in Step 8. After the cart is confirmed (Step 8.4), check off in Alexa every item that
+line list in Step 8. Record the date you first saw each item (`alexa_list_seen` in `MEMORY.md`)
+and show it beside the item ("on the list since Thu 11/12"). After the cart is confirmed (Step 8.4), check off in Alexa every item that
 went into the Kroger cart. In plan-only mode, read the list but check nothing off. If Amazon
 can't be reached or the user hasn't signed in by hand-off, put "Alexa list not retrieved" at the
 top of the disclosures and offer to add the items later.
@@ -392,8 +462,11 @@ top of the disclosures and offer to add the items later.
 
 1. **Assemble the line list first:** recipe ingredients at scaled quantities, minus what's on
    hand and minus what's already in the house for a carried-over dinner; the Alexa items; the
-   full standing order from the config. Count packages from the scaled amount: scaled amount ÷
-   package size, rounded up (a recipe that uses one jar, made 2x, needs two jars). Prepped forms
+   voice-note items (`pending_items` in memory); the full standing order from the config. An item
+   that comes from more than one of these (the house is out of cumin, a recipe needs it, and it is
+   on the Alexa list) is one line, at the largest quantity any of them needs. Ask in one line
+   about a voice-note item too vague to buy ("snacks", "the good bread"). Count packages from
+   the scaled amount: scaled amount ÷ package size, rounded up (a recipe that uses one jar, made 2x, needs two jars). Prepped forms
    per `PREPPED-FIRST.md`, and the config's never-whole items always prepped. Loved products by
    their UPC. Prefer the discounted option in each category.
 2. **Compute the subtotal and projected all-in before adding anything** (`QUANTITY-MATH.md`). If
@@ -409,28 +482,31 @@ top of the disclosures and offer to add the items later.
    if the run stops partway: from the first add on, the copy in the profile folder is stale.
 4. **Confirm.** Ask the user to check that the cart in the Kroger app shows the expected line
    count and the last few items; re-add anything missing. Then check off the added Alexa items
-   (Step 7).
+   (Step 7), and remove the voice-note items that went in from `pending_items` and save memory.
 
 **Plan-only mode:** steps 1 and 2 the same (with estimates), then write the shopping list into
 the plan file, grouped by store section, quantities in packages, with the recipe each line is
-for. No cart, no Alexa check-off. With no store data there are no sales to pick from: a rule that
-says "whichever is on sale" or "with a discount" becomes a note on that line ("the one on sale"),
+for (or its source: standing order, Alexa, voice notes). No cart, no Alexa check-off. With no
+store data there are no sales to pick from: a rule that says "whichever is on sale" or "with a discount" becomes a note on that line ("the one on sale"),
 every cost is a labeled estimate, and no line claims a price or a deal.
 
 ## Step 9 — Hand off
 
 Add to the plan file, below Prep: the cart table (one table per source: recipes, standing order,
-Alexa; then subtotal, fee, food and non-food tax, tip, all-in) or the shopping list, and the
-disclosures. Tell the user where the file is (in Cowork, commit it into the profile folder's
+Alexa, voice notes; then subtotal, fee, food and non-food tax, tip, all-in) or the shopping list,
+and the disclosures. Tell the user where the file is (in Cowork, commit it into the profile folder's
 `outputs/` and share it with `SendUserFile`).
 
 Disclosures, whenever they happened: Alexa retrieved or not, and Alexa items left unchecked;
-Apple Note updated or not; budget cuts applied; substitutions; items not found; standing items
+voice notes: how many were filed, any still waiting on an answer, voice-note items not added
+(they stay pending for next week), and notes unavailable this run; Apple Note updated or not;
+budget cuts applied; substitutions; items not found; standing items
 not added; assumed-on-hand items; staples bought anyway; items not label-checked; snacks bought
 without a discount; recipe-critical items to set to "no substitutions" in the Kroger app; the
 plant count if under target; the running "delete in app" list, if any; and **"I have not placed
-the order; you do."** In plan-only mode only these apply: Alexa read or not, Apple Note updated or
-not, budget cuts, assumed-on-hand items, items not label-checked, and the plant count.
+the order; you do."** In plan-only mode only these apply: Alexa read or not, voice notes, Apple
+Note updated or not, budget cuts, assumed-on-hand items, items not label-checked, and the plant
+count.
 
 In chat: three or four lines, not the table. If the config says the household clips coupons, end
 with: "Clip the digital coupons in the Kroger app before you order."
@@ -443,6 +519,14 @@ the same `week_of`) with `order_placed: false` and any `carried_over` dinners, a
 `adult_snacks_recent`, set `pinterest_last_pull` to the run's timestamp if the board was read,
 add durable notes, set `last_updated`, save. Ask the user to say when the order is placed (or,
 plan-only, when they've shopped).
+
+**Voice context (only when voice notes are on).** After the memory save, tell the skill what
+this week is, so Alexa can match "the chili" and "Sam": write a small JSON file outside the
+profile folder (a temp file) holding `week_of`, `meals` (this week's recipe names) and `people`
+(the first names from the config's Household table), run
+`python3 scripts/martha_voice.py context <that file>`, then delete the file. Nothing else goes in
+it: no diets, budget, address or Kroger data. If it fails, say so in one line; the run is
+otherwise done.
 
 A standing rule stated mid-run ("always the 12-count cheese sticks", "never olives", "just remind
 me about the coupons") goes into `martha-config.md` the same turn; say so in one line. A one-week
@@ -547,6 +631,7 @@ must be public. Store
 | "Move my profile" | Copies the whole profile folder to the new place, checks the copy opens, points `~/.martha/profile-location.txt` at it, then asks the user to delete the old copy: two copies of the Kroger sign-in go stale (`KROGER-SETUP.md`) |
 | "Plan only this week" | Runs without prices or cart writes, even with credentials |
 | "We loved that chili" | The feedback path in `MEMORY.md` |
+| "Set up voice notes" | Walks through `VOICE-SETUP.md`. The user runs step 6 (`martha_voice.py setup`) in their own terminal: the AWS secret is typed there, never in chat. Then sets the config's Voice notes row to `on` |
 
 ## Non-negotiables
 
@@ -555,11 +640,12 @@ must be public. Store
   cuts come only from `QUANTITY-MATH.md`'s ranked list, and dropping a dinner is not on it.
 - Prepped ingredients by default. Never revert to whole vegetables to save a dollar; the
   config's never-whole items are never bought whole.
-- Never store, request, type or print a password or secret. Sign-ins to Kroger, iCloud, Amazon
-  and Pinterest are the user's. A one-time OAuth code pasted by the user is fine.
+- Never store, request, type or print a password or secret. Sign-ins to Kroger, iCloud, Amazon,
+  Pinterest and AWS are the user's. A one-time OAuth code pasted by the user is fine.
 - **Never place the order, never check out**, and never pick the delivery or pickup slot. Never
-  send email. The only outside writes are the Kroger cart, the Apple Note, and checking off
-  Alexa items that went into the cart, each only when configured.
+  send email. The only outside writes are the Kroger cart, the Apple Note, checking off Alexa
+  items that went into the cart, deleting voice notes once filed, and writing the voice context
+  record (meal names and first names only), each only when configured.
 - Never propose a recipe served inside the repeat window (a carried-over dinner is the one
   exception).
 - If you cannot verify a price, say so rather than estimating and calling it a price. Never

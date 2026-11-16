@@ -1,11 +1,13 @@
 {
-  "version": 2,
+  "version": 3,
   "last_updated": null,
   "pinterest_last_pull": null,
   "recipe_library": [],
   "weeks": [],
   "loved_ingredients": [],
   "disliked_ingredients": [],
+  "pending_items": [],
+  "alexa_list_seen": [],
   "adult_snacks_recent": [],
   "notes": [
     "Fresh memory file. No history yet - the first run is a cold start."
@@ -42,6 +44,22 @@
       "substitutions": [],
       "feedback_collected": false,
       "feedback_asked": false
+    },
+    "loved_ingredient": {
+      "name": "",
+      "said": "",
+      "last_said": null,
+      "times": 1
+    },
+    "pending_item": {
+      "item": "",
+      "said": "",
+      "added": "",
+      "source": "voice"
+    },
+    "alexa_list_item": {
+      "item": "",
+      "first_seen": ""
     }
   }
 }

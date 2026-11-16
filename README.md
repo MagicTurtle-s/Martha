@@ -22,6 +22,7 @@ The cart needs a Kroger store in the US. Kroger's API also lists its family stor
 - **Buys the right amounts.** Quantity math turns recipes into package counts, and pre-cut produce is preferred where it saves a cooking step.
 - **Optional nutrition standard.** Plans can follow the [ZOE](https://zoe.com) approach of 30 different plants a week, or a macro target, or neither.
 - **Writes the plan where you'll see it.** A plan file in your profile folder, and optionally an Apple Note. It can also read your Alexa shopping list into the cart and check off what it added.
+- **Takes notes by voice (optional).** Through an Alexa skill of your own, anyone in the house can say "Alexa, use Martha Meals to add cumin" or "...to note that Sam loved the chili"; the notes wait in your own AWS account, and the next run shows each one and files it. Setup: [VOICE-SETUP.md](.claude/skills/martha/VOICE-SETUP.md).
 
 What it never does: place the order, check out, or pay. The cart is yours to review.
 
@@ -44,7 +45,7 @@ To use Martha from any folder, copy `.claude/skills/martha` to `~/.claude/skills
 ## Requirements
 
 - Claude Code (tested), or Claude Cowork with a linked computer
-- Python 3.9 or newer; the Kroger and Pinterest clients use only the standard library
+- Python 3.9 or newer; the Kroger, Pinterest and voice-notes clients use only the standard library
 - A Kroger account, and a free app at [developer.kroger.com](https://developer.kroger.com) for cart filling
 - Optional: a Pinterest developer app, for reading a recipe board
 - Optional: the Claude in Chrome extension, only for the Apple Note and Alexa list
@@ -60,10 +61,11 @@ The profile is on this computer only (`~/.martha`), or in a cloud folder that yo
 
 ```
 .claude/skills/martha/     the skill: SKILL.md and the guides it reads
-  scripts/                 Kroger and Pinterest clients (Python, standard library)
+  scripts/                 Kroger, Pinterest and voice-notes clients (Python, standard library)
   config-example.md        every household setting, with made-up values
   KROGER-SETUP.md          one-time Kroger setup
   PINTEREST-SETUP.md       optional Pinterest setup
+  VOICE-SETUP.md           optional voice notes through Alexa
   PROFILE.md               where your household's profile lives
 mods/chef-clawd/           Chef Clawd, an optional Claude Code mod
 .claude-plugin/            the marketplace file that installs Chef Clawd

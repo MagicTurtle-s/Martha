@@ -90,6 +90,12 @@ indefinitely.
 Reconcile the list against the recipe list before adding: the two overlap, and double-adding is a
 common error. Ask about anything ambiguous ("milk": which milk, and for whom?).
 
+**Dates:** the list doesn't say when an item was added, so Martha keeps the date she first saw
+it, in memory's `alexa_list_seen` (`MEMORY.md`). After reading, add each new item with today's
+date, keep the date of an item already there, and drop entries for items no longer on the list.
+Show the date beside each Alexa item in the cart table or shopping list ("on the list since Thu
+11/12"), and call it first seen, never "added".
+
 **Checking off (after `SKILL.md` Step 8.4):** check off every item that went into the Kroger
 cart. Leave unchecked anything that wasn't added (not found, cut for budget) and name those in
 the disclosures. Never delete items; only check them off. In plan-only mode, check nothing off.
