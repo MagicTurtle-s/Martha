@@ -20,7 +20,7 @@ household places the order.
 | `kroger-credentials.json` | The household's Kroger API app and sign-in token. Lives in the profile folder. Setup: `KROGER-SETUP.md`. Without it Martha runs plan-only. |
 | `pinterest-credentials.json` | Optional, for a Pinterest recipe board. Setup: `PINTEREST-SETUP.md`. |
 | `voice-credentials.json` | Optional, for voice notes: this computer's AWS key. Lives in the profile folder. |
-| `VOICE-SETUP.md` | Optional voice notes through the household's own Alexa skill ("Alexa, use Martha Meals to add cumin"): the AWS side, the skill, and this computer's key. |
+| `VOICE-SETUP.md` | Optional voice notes through the household's own Alexa skill ("Alexa, tell Martha Meal we're out of cumin"): the AWS side, the skill, and this computer's key. |
 | `config-example.md` | The config's structure, filled in for a made-up household. |
 | `PROFILE.md` | For the user: where the profile can live, how to move it, back it up or keep it in git. |
 | `QUANTITY-MATH.md` | Scaling, standing-order rules, budget arithmetic, ranked cuts. Read it before Step 5. |
@@ -197,7 +197,7 @@ leave that setting blank (blank switches an optional feature off).
     link), and read your Alexa shopping list (its name): those items go into the Kroger cart and
     are checked off in Alexa. Both need the Claude in Chrome extension (default: neither).
 14. Voice notes: anyone in the house can tell an Alexa skill of your own how a meal went, what
-    you're out of, or what you'd like more of ("Alexa, use Martha Meals to add cumin"),
+    you're out of, or what you'd like more of ("Alexa, tell Martha Meal we're out of cumin"),
     and Martha files the notes at the next run. It needs an AWS account and a one-time setup
     (`VOICE-SETUP.md`). Turn it on (default off)?
 15. Who clips digital coupons in the Kroger app? (Martha never clips them; it can remind you.

@@ -225,11 +225,12 @@
             "Martha Meals"
           ],
           "recommended": "Chef Martha",
-          "answer": "Martha Meals.",
+          "answer": "Martha Meal. [Amended 2026-11-16; was \"Martha Meals\".]",
           "status": "answered",
           "answeredAt": "2026-11-16",
           "owner": "household",
-          "notes": "He wrote: \"Can it be 'Martha Meal/s'?\" Both 'martha meal' and 'martha meals' pass the console's name check (typed, not saved, 2026-11-16). Plural used; switching to 'Martha Meal' is a one-word change. Changeable any time; this skill is never published."
+          "notes": "He wrote: \"Can it be 'Martha Meal/s'?\" Both 'martha meal' and 'martha meals' pass the console's name check (typed, not saved, 2026-11-16). Plural used; switching to 'Martha Meal' is a one-word change. Changeable any time; this skill is never published. Amended 2026-11-16 after his phone test: the notes came back clean once he dropped the s, so the real skill is named \"Martha Meal\".",
+          "amendedAt": "2026-11-16"
         },
         {
           "id": "CTX-1",
@@ -274,7 +275,7 @@
           "status": "answered",
           "answeredAt": "2026-11-16",
           "owner": "Claude (test)",
-          "notes": "Typed tests only, 2026-11-16, console simulator on the test skill (catch-all custom slot NOTE_TEXT, samples \"{note}\", \"that {note}\", \"remember {note}\", \"note {note}\"...). The command-line simulator (ask smapi simulate-skill) fails every one-line utterance with \"An unexpected error occurred\" and two in-session ones; the console simulator handled the same inputs, so that is a tool limit, not the skill. Spoken test on the phone still to do. Leads to NAME-3."
+          "notes": "Typed tests only, 2026-11-16, console simulator on the test skill (catch-all custom slot NOTE_TEXT, samples \"{note}\", \"that {note}\", \"remember {note}\", \"note {note}\"...). The command-line simulator (ask smapi simulate-skill) fails every one-line utterance with \"An unexpected error occurred\" and two in-session ones; the console simulator handled the same inputs, so that is a tool limit, not the skill. Spoken test 2026-11-16 on his phone (Alexa app): all five notes came back clean once he said the name in the singular, \"Martha Meal\"; \"Alexa, tell Martha Meal ...\" also reached the skill on the phone, unlike \"tell Martha Meals\" in the console simulator. Leads to NAME-3."
         },
         {
           "id": "NAME-3",
@@ -285,11 +286,12 @@
             "Grocery list as today, with Martha recording the date she first sees each item"
           ],
           "recommended": "\"Alexa, use Martha Meals to ...\"",
-          "answer": "Keep the name Martha Meals. One breath: \"Alexa, use Martha Meals to <note>\". Items can also keep going on the Alexa grocery list, and Martha records the date she first sees each item there. No routine.",
+          "answer": "Name \"Martha Meal\". On his phone both \"Alexa, tell Martha Meal <note>\" and \"Alexa, use Martha Meal to <note>\" reach the skill in one breath; the grocery list keeps working, with Martha recording when she first sees each item. No routine. [Amended 2026-11-16; was \"use Martha Meals to ...\" only, from simulator tests.]",
           "status": "answered",
           "answeredAt": "2026-11-16",
           "owner": "household",
-          "notes": "From CAPTURE-1, 2026-11-16. His asides: \"With #2 how is Martha lost? Could the phrase to activate be Hey Martha, set through Alexa's setting? Or at least Alexa, Tell Martha...?\" then \"I want #1 [routine: Alexa, tell Martha] and am expecting to be able to include the context in the same breath, Alexa, Tell Martha to add Cumin. Alternatively, [we] use a list called grocery. If claude/martha is able to API read that list, then it's a matter of Claude/Martha being able to see what's there and when it was added.\" Findings: custom wake words are not available (fixed list; brand-only custom assistants); Amazon ended outside access to Alexa lists July 1, 2024 (developer.amazon.com deprecated-features page), so the grocery list stays browser-read by Martha; a routine fires only on its exact phrase, so it cannot carry the note in the same breath; \"tell martha's kitchen ...\" is taken as a device-group announcement; \"use martha meals to add cumin\" reaches the skill as \"add cumin\" (tested in the console simulator)."
+          "notes": "From CAPTURE-1, 2026-11-16. His asides: \"With #2 how is Martha lost? Could the phrase to activate be Hey Martha, set through Alexa's setting? Or at least Alexa, Tell Martha...?\" then \"I want #1 [routine: Alexa, tell Martha] and am expecting to be able to include the context in the same breath, Alexa, Tell Martha to add Cumin. Alternatively, [we] use a list called grocery. If claude/martha is able to API read that list, then it's a matter of Claude/Martha being able to see what's there and when it was added.\" Findings: custom wake words are not available (fixed list; brand-only custom assistants); Amazon ended outside access to Alexa lists July 1, 2024 (developer.amazon.com deprecated-features page), so the grocery list stays browser-read by Martha; a routine fires only on its exact phrase, so it cannot carry the note in the same breath; \"tell martha's kitchen ...\" is taken as a device-group announcement; \"use martha meals to add cumin\" reaches the skill as \"add cumin\" (tested in the console simulator). His words after the phone test: \"They came back clean once I dropped the s and only said Martha Meal. I was also able to say Alexa, Tell Martha Meal...\"",
+          "amendedAt": "2026-11-16"
         }
       ]
     }

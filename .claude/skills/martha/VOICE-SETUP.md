@@ -1,16 +1,17 @@
 # Voice notes setup (optional)
 
 With voice notes, anyone in the house can tell Martha things between runs, through an Alexa skill
-of your own called "Martha Meals":
+of your own called "Martha Meal":
 
-- "Alexa, use Martha Meals to add ground cumin."
-- "Alexa, use Martha Meals to note that Sam really liked the chili tonight."
-- "Alexa, use Martha Meals to note that we'd like more sheet-pan dinners."
-- Or "Alexa, open Martha Meals", and say the note when it asks.
+- "Alexa, tell Martha Meal we're out of ground cumin."
+- "Alexa, tell Martha Meal Sam really liked the chili tonight."
+- "Alexa, use Martha Meal to note that we'd like more sheet-pan dinners."
+- Or "Alexa, open Martha Meal", and say the note when it asks.
 
-Say "use Martha Meals to", not "tell Martha Meals": with Alexa+, "tell" plus a name that sounds
-like a person starts a text message to a contact instead of reaching the skill (tested
-2026-11-16).
+Keep the name singular. In testing on Alexa+ (2026-11-16), "tell Martha Meals ..." was taken as
+a text message to a contact called Martha Meals, while "tell Martha Meal ..." and "use Martha
+Meal to ..." reached the skill. If "tell" ever starts a message instead, say "use Martha Meal
+to ...".
 
 Alexa says back what it understood. The note waits in a small table in your own AWS account until
 the next Martha run, which shows every note with how it was filed (a rating, this week's shopping
@@ -29,7 +30,7 @@ Written in the next phase.
 
 Written in the next phase.
 
-## 3. Make the Alexa skill "Martha Meals"
+## 3. Make the Alexa skill "Martha Meal"
 
 Written in the next phase.
 

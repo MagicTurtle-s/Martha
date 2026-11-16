@@ -1,7 +1,7 @@
 """Martha - voice notes client. DynamoDB over HTTPS with hand-written AWS Signature Version 4,
 standard library only (Python 3.9+).
 
-The household leaves notes through its own Alexa skill ("Alexa, use Martha Meals to add ground
+The household leaves notes through its own Alexa skill ("Alexa, tell Martha Meal we're out of ground
 cumin"), which saves each one to a DynamoDB table in the household's AWS account. This is
 Martha's side of that table: read the waiting notes, delete the ones Martha has filed, and write the
 small context record the skill reads (this week's meal names and the household's first names,
