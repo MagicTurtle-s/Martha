@@ -125,12 +125,15 @@ const wordRe = (term) => new RegExp(`(?<![A-Za-z0-9])${term.replace(/[.*+?^${}()
   // code (refresh_token=refresh_token), not a secret.
   const isName = (v) => /^[A-Za-z_.]+$/.test(v);
   const SECRET = [
-    [/(?<![A-Za-z0-9])(?:[A-Za-z0-9]+_)*(client_secret|refresh_token|access_token|app_secret|api_key|apikey|secret_key|password|passwd)['"]?\s*[:=]\s*['"]?([^'"\s,;(){}[\]]{12,})/gi, 'a filled-in secret', 2],
+    [/(?<![A-Za-z0-9])(?:[A-Za-z0-9]+_)*(client_secret|refresh_token|access_token|app_secret|api_key|apikey|secret_access_key|secretaccesskey|secret_key|password|passwd)['"]?\s*[:=]\s*['"]?([^'"\s,;(){}[\]]{12,})/gi, 'a filled-in secret', 2],
+    // AWS access key ids. AWS's own documentation examples end in EXAMPLE and are allowed below.
+    [/\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g, 'an AWS access key id', 0],
     [/\beyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]*/g, 'a JSON web token', 0],
     [/\bBearer\s+([A-Za-z0-9._~+/-]{20,})/g, 'a bearer token', 1],
     [/-----BEGIN [A-Z ]*PRIVATE KEY-----/g, 'a private key', 0],
     [/\b(?:ghp_|gho_|github_pat_|sk-ant-|xox[abp]-|pina_)[A-Za-z0-9_-]{16,}/g, 'an API key', 0],
-    [/(?<![A-Za-z0-9+_=-])[A-Za-z0-9+_=-]{40,}(?![A-Za-z0-9+_=-])/g, 'a long token-shaped string', 0],
+    // '/' is included because AWS secret access keys contain it.
+    [/(?<![A-Za-z0-9+/_=-])[A-Za-z0-9+/_=-]{40,}(?![A-Za-z0-9+/_=-])/g, 'a long token-shaped string', 0],
   ];
   const fails = [];
   for (const p of files) for (const [re, what] of FORBIDDEN) if (re.test(p)) fails.push(`${p}: ${what} must not be published`);
@@ -139,6 +142,7 @@ const wordRe = (term) => new RegExp(`(?<![A-Za-z0-9])${term.replace(/[.*+?^${}()
       for (const m of body.matchAll(re)) {
         const value = m[group] ?? m[0];
         if (group && (isPlaceholder(value) || isName(value))) continue;
+        if (/EXAMPLE(KEY)?$/.test(value)) continue;
         // A token mixes cases and digits; an alphabet written out (a base64 table) is not one.
         if (what.startsWith('a long') && (!(/[A-Z]/.test(value) && /[a-z]/.test(value) && /[0-9]/.test(value)) || /ABCDEFGHIJ|abcdefghij/.test(value))) continue;
         fails.push(`${p}:${lineOf(body, m.index)} ${what}`);
@@ -152,7 +156,7 @@ const wordRe = (term) => new RegExp(`(?<![A-Za-z0-9])${term.replace(/[.*+?^${}()
 {
   // Files that live on the user's machine by design, never in the repo.
   const USER_FILES = new Set([
-    'martha-config.md', 'martha-memory.json', 'kroger-credentials.json', 'pinterest-credentials.json',
+    'martha-config.md', 'martha-memory.json', 'kroger-credentials.json', 'pinterest-credentials.json', 'voice-credentials.json',
     'settings.json', 'settings.local.json', 'claude_desktop_config.json', 'preview.html', 'index.d.ts',
   ]);
   const EXT = 'md|py|json|html|ts|tsx|mjs|js|gif|png|txt|zip|ya?ml';

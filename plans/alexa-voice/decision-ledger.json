@@ -1,0 +1,284 @@
+{
+  "_v": 1,
+  "plan": "plans/alexa-voice/",
+  "createdAt": "2026-11-16",
+  "protocol": "open = not decided. assumed = Claude stated it instead of asking; he can overturn it any time by saying so. answered = he chose. answered-placeholder = the choice stands in for something not built yet and needs buildRef. moot = replaced by a later decision (supersededBy). INTERVIEWS.md holds the questions and recommendations; only this file holds answers.",
+  "sessions": [
+    {
+      "id": "S0",
+      "title": "Chosen in chat before the interview",
+      "questions": [
+        {
+          "id": "SCOPE-1",
+          "q": "Which voice commands should the first real version handle?",
+          "options": [
+            "What's for dinner tonight?",
+            "Tell Martha how a meal went",
+            "Add something",
+            "Start next week's plan"
+          ],
+          "recommended": null,
+          "answer": "Tell Martha how a meal went + Add something, widened: free-form notes, preferences or items that Martha interprets and stores for the next plan, a standing preference, etc.",
+          "status": "answered",
+          "answeredAt": "2026-11-16",
+          "owner": "household",
+          "notes": "His words: \"To expand on #2-#3, I'd like to be able to provide notes, preferences, or items which can be interpreted or stored for either the next meal plan, a meal plan preference, etc. 'Martha, I'm out of ground Cumin'. '[a child] really liked X meal tonight'\". Child's name withheld for the public release."
+        },
+        {
+          "id": "SCOPE-2",
+          "q": "Where does Martha do the work when Alexa passes something on: the PC or the cloud?",
+          "options": [
+            "The PC",
+            "The cloud"
+          ],
+          "recommended": "The PC",
+          "answer": "Split, following his answers: understanding a note for the read-back happens in the cloud at the moment it's spoken (TALK-1); filing it and anything touching Kroger happens on the PC at the next Martha run (CART-1).",
+          "status": "moot",
+          "answeredAt": "2026-11-16",
+          "supersededBy": [
+            "TALK-1",
+            "CART-1"
+          ],
+          "owner": "household",
+          "notes": "He deferred it on 2026-11-16: \"Interview me on what success looks like for this and we'll build around that/divert based on costs/feasibility\". TALK-1 and CART-1 then settled it."
+        }
+      ]
+    },
+    {
+      "id": "S1",
+      "title": "What success looks like",
+      "questions": [
+        {
+          "id": "VOICE-1",
+          "q": "What does he say to reach Martha?",
+          "options": [],
+          "recommended": null,
+          "answer": "\"Alexa, tell Martha ...\"; an Echo can't wake on Martha itself. Exact skill name pending NAME-1.",
+          "status": "answered",
+          "answeredAt": "2026-11-16",
+          "owner": "household (confirmed Claude's assumption)",
+          "notes": "Confirmed 2026-11-16: he said \"yes to all\" to the closing summary."
+        },
+        {
+          "id": "ITEM-1",
+          "q": "How do plain grocery items get in?",
+          "options": [],
+          "recommended": null,
+          "answer": "Both the existing Alexa grocery list (already read by Martha) and the skill; both end in the next cart.",
+          "status": "answered",
+          "answeredAt": "2026-11-16",
+          "owner": "household (confirmed Claude's assumption)",
+          "notes": "Config: Alexa list name 'grocery', read through Claude in Chrome. Confirmed 2026-11-16: he said \"yes to all\" to the closing summary."
+        },
+        {
+          "id": "WHO-1",
+          "q": "Who can leave notes?",
+          "options": [],
+          "recommended": null,
+          "answer": "Anyone in the house; no voice ID in the first version.",
+          "status": "answered",
+          "answeredAt": "2026-11-16",
+          "owner": "household (confirmed Claude's assumption)",
+          "notes": "Consistent with SUCC-1 'The whole house uses it'. Confirmed 2026-11-16: he said \"yes to all\" to the closing summary."
+        },
+        {
+          "id": "FILE-1",
+          "q": "How are filing mistakes caught?",
+          "options": [],
+          "recommended": null,
+          "answer": "The next Martha run opens by showing every note and how it was filed.",
+          "status": "answered",
+          "answeredAt": "2026-11-16",
+          "owner": "household (confirmed Claude's assumption)",
+          "notes": "Confirmed 2026-11-16: he said \"yes to all\" to the closing summary."
+        },
+        {
+          "id": "PREF-1",
+          "q": "Where does a person's liking for a meal go?",
+          "options": [],
+          "recommended": null,
+          "answer": "On the recipe, in the speaker's words, nudging its rating; no per-person tracking yet. Martha asks once who an unknown name is.",
+          "status": "answered",
+          "answeredAt": "2026-11-16",
+          "owner": "household (confirmed Claude's assumption)",
+          "notes": "MEMORY.md schema has recipe notes/rating and loved/disliked ingredients, nothing per person. Confirmed 2026-11-16: he said \"yes to all\" to the closing summary."
+        },
+        {
+          "id": "HOST-1",
+          "q": "Does note-taking need the PC on?",
+          "options": [],
+          "recommended": null,
+          "answer": "No: notes are taken by the skill's own back end in the household's AWS account (free tier) and wait in the table for the next run. [Amended 2026-11-16; was: \"taken in Amazon's free hosting\".]",
+          "status": "answered",
+          "answeredAt": "2026-11-16",
+          "owner": "household (confirmed Claude's assumption)",
+          "notes": "Mailbox choice is MAIL-1. Confirmed 2026-11-16: he said \"yes to all\" to the closing summary. Amended 2026-11-16 at plan approval: Amazon's free hosting runs only Node 16 and can't be changed (Amazon hosted-skills docs); Anthropic's SDK needs Node 20+ (anthropic-sdk-typescript README). The back end moved into the household's AWS account on Node 22. Still works with the PC off.",
+          "amendedAt": "2026-11-16"
+        },
+        {
+          "id": "SUCC-1",
+          "q": "A month in, what makes this a success?",
+          "options": [
+            "We stop losing notes",
+            "Plans visibly learn",
+            "The whole house uses it",
+            "Planning goes faster"
+          ],
+          "recommended": null,
+          "answer": "All four: the whole house uses it, planning goes faster, we stop losing notes, plans visibly learn. Plus a weighting rule (see notes and RUBRIC-1).",
+          "status": "answered",
+          "answeredAt": "2026-11-16",
+          "owner": "household",
+          "notes": "His aside, verbatim apart from the name: \"This may be indirectly related, but a weighted rubric that is not heavy-handed with feedback. IE - [a household member] loved these gluten free noodles DOES NOT mean every meal/week/recipie should contain those noodles\"."
+        },
+        {
+          "id": "RUBRIC-1",
+          "q": "How much should one piece of praise move future plans?",
+          "options": [],
+          "recommended": null,
+          "answer": "Praise moves something up, never makes it a fixture. A loved ingredient or product stays a tiebreaker (as MEMORY.md already treats loved_ingredients), appears at most once a week unless a chosen recipe calls for it, and its pull fades over about six weeks unless someone says it again. A loved recipe comes back after the repeat window, not every week.",
+          "status": "answered",
+          "answeredAt": "2026-11-16",
+          "owner": "household (confirmed Claude's assumption)",
+          "notes": "Drawn from his SUCC-1 aside. Numbers (once a week, six weeks) are a starting point he can change in a word. MEMORY.md 'loved_ingredients' and read rule 4 already say tiebreaker only. Confirmed 2026-11-16: he said \"yes to all\" to the closing summary."
+        },
+        {
+          "id": "TALK-1",
+          "q": "Right after a note, what should Alexa say?",
+          "options": [
+            "\"Got it\"; Martha files it at the next run",
+            "Read back what Martha understood, and ask if unclear (Claude API key + small bill)"
+          ],
+          "recommended": "\"Got it\"; Martha files it at the next run",
+          "answer": "Read back what Martha understood.",
+          "status": "answered",
+          "answeredAt": "2026-11-16",
+          "owner": "household",
+          "notes": "Went against the recommendation. How smart the read-back must be (and so whether the Claude API is needed at all) is READ-2."
+        },
+        {
+          "id": "CART-1",
+          "q": "When should a spoken item reach Kroger?",
+          "options": [
+            "At the next Martha run",
+            "Straight into the Kroger cart right away (Kroger sign-in moves to the cloud)"
+          ],
+          "recommended": "At the next Martha run",
+          "answer": "At the next Martha run.",
+          "status": "answered",
+          "answeredAt": "2026-11-16",
+          "owner": "household",
+          "notes": "The Kroger sign-in stays on the PC."
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "title": "Build mechanics",
+      "questions": [
+        {
+          "id": "READ-2",
+          "q": "Who understands a note for the read-back?",
+          "options": [
+            "Claude Haiku 5.5: understands any wording, ~15 cents/month at 10 notes/day, needs an Anthropic API key",
+            "Alexa's own fixed note types: free, no key, but only set shapes like 'out of X' or 'NAME liked MEAL'; anything else is read back word for word",
+            "Claude Opus 5.5: smartest, ~$6/month, slower and closer to Alexa's 8-second limit"
+          ],
+          "recommended": "Claude Haiku 5.5",
+          "answer": "Claude Haiku 5.5.",
+          "status": "answered",
+          "answeredAt": "2026-11-16",
+          "owner": "household",
+          "notes": "Follows TALK-1. Needs an Anthropic API key he creates (credential step is his). Prices from the claude-api skill's model table (cached 2026-11-03): Haiku 5.5 $0.10/$0.50, Opus 5.5 $4/$20 per million tokens. Estimate: 300 notes/month x (1,500 in + ~650 out incl. thinking)."
+        },
+        {
+          "id": "MAIL-1",
+          "q": "Where do notes wait between being spoken and being picked up?",
+          "options": [
+            "A private GitHub repository, notes encrypted by us before storing: free; the skill holds a GitHub key limited to that one repository plus the scrambling key",
+            "His own AWS account linked to the skill: no key stored in the skill (it borrows short-lived access through an AWS role); notes encrypted at rest by Amazon; costs an AWS account (card required, free tier) and an AWS key on the PC"
+          ],
+          "recommended": "A private GitHub repository, notes encrypted by us before storing",
+          "answer": "His own AWS account linked to the skill.",
+          "status": "answered",
+          "answeredAt": "2026-11-16",
+          "owner": "household",
+          "notes": "Needed whichever READ-2 answer: the PC can't read the storage that comes with Amazon's free hosting. 2026-11-16 he asked of the GitHub option: \"Does #1 offer encryption or is that key basically public?\" Answer given: not public (the key lives in the skill's code, visible only to his Amazon developer account; it opens only the notes repository); GitHub encrypts the connection but can read stored content, so the option now adds our own encryption. AWS role mechanism checked on Amazon's 'personal AWS resources' docs page (assume role via STS, no stored access key)."
+        },
+        {
+          "id": "NAME-1",
+          "q": "Is 'martha' alone accepted as the skill's name, and does a one-shot 'Alexa, tell martha ...' reach the skill on Alexa+?",
+          "options": [],
+          "recommended": null,
+          "answer": "No to one word: the console rejects it ('Invocation name must be at least 2 words'). Yes to one-shot: 'tell martha test hello' went straight to the skill and answered 'Hello World!' in the simulator.",
+          "status": "answered",
+          "answeredAt": "2026-11-16",
+          "owner": "Claude (lookup)",
+          "notes": "Checked live in the developer console 2026-11-16; the test skill's name was put back to 'martha test' (never saved as 'martha')."
+        },
+        {
+          "id": "NAME-2",
+          "q": "What two-word name does the household say?",
+          "options": [
+            "Chef Martha",
+            "Martha Kitchen",
+            "Martha Meals"
+          ],
+          "recommended": "Chef Martha",
+          "answer": "Martha Meals.",
+          "status": "answered",
+          "answeredAt": "2026-11-16",
+          "owner": "household",
+          "notes": "He wrote: \"Can it be 'Martha Meal/s'?\" Both 'martha meal' and 'martha meals' pass the console's name check (typed, not saved, 2026-11-16). Plural used; switching to 'Martha Meal' is a one-word change. Changeable any time; this skill is never published."
+        },
+        {
+          "id": "CTX-1",
+          "q": "What household data leaves the PC so the read-back can name things?",
+          "options": [],
+          "recommended": null,
+          "answer": "After each Martha run the PC copies this week's meal names and the household's first names to the mailbox, so the read-back can say 'the white chicken chili' rather than 'the chicken thing'. Nothing else leaves: no Kroger sign-in, budget, address or diets. Those names also go to Claude with each note if READ-2 picks Claude.",
+          "status": "answered",
+          "answeredAt": "2026-11-16",
+          "owner": "household (confirmed Claude's assumption)",
+          "notes": "Only matters if READ-2 picks a Claude option. Confirmed 2026-11-16: he said \"yes to all\" to the closing summary."
+        },
+        {
+          "id": "AWS-1",
+          "q": "What exactly lives in his AWS account, and who can touch it?",
+          "options": [],
+          "recommended": null,
+          "answer": "One DynamoDB table in us-east-1. The skill's own Lambda role (same account) may only add notes and read the week's context. The PC's key may only read and delete notes and write the context. Nothing else in the account is reachable by either. [Amended 2026-11-16; was: \"the skill's borrowed role\".]",
+          "status": "answered",
+          "answeredAt": "2026-11-16",
+          "owner": "household (confirmed Claude's assumption)",
+          "notes": "Follows MAIL-1. Creating the AWS account and the PC's key are his steps (card, credential). Confirmed 2026-11-16: he said \"yes to all\" to the closing summary. Amended 2026-11-16 with HOST-1: the skill now runs in the same AWS account, so no cross-account role borrowing.",
+          "amendedAt": "2026-11-16"
+        },
+        {
+          "id": "AWS-2",
+          "q": "How is AWS spending kept in check?",
+          "options": [],
+          "recommended": null,
+          "answer": "A monthly budget alert at $1 emails him if the account ever costs anything; expected use is well inside the free tier.",
+          "status": "answered",
+          "answeredAt": "2026-11-16",
+          "owner": "household (confirmed Claude's assumption)",
+          "notes": "Follows MAIL-1. Confirmed 2026-11-16: he said \"yes to all\" to the closing summary."
+        },
+        {
+          "id": "CAPTURE-1",
+          "q": "Does a whole spoken sentence reach the skill intact?",
+          "options": [],
+          "recommended": null,
+          "answer": null,
+          "status": "open",
+          "answeredAt": null,
+          "owner": "Claude",
+          "notes": "Known risk, not a question: classic skills receive the words Alexa fills into a slot, not a raw transcript. First build step tests a catch-all slot with real notes in the simulator and on the phone. If wording gets clipped, loose phrasing (SUCC-1 'whole house') suffers whichever READ-2 answer."
+        }
+      ]
+    }
+  ],
+  "confirmedAt": "2026-11-16",
+  "confirmation": "He confirmed the whole interview summary (\"yes to all\"), including the six-week fade on praise (RUBRIC-1) and anyone in the house leaving notes (WHO-1). Interview closed; next is the build plan."
+}
