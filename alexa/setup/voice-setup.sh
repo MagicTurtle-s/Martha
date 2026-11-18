@@ -205,6 +205,11 @@ ROOT="$(cd "$HERE/../.." && pwd)"
 REGION_GIVEN="${AWS_DEFAULT_REGION:-}"
 export AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-us-east-1}"
 export AWS_PAGER=""
+# Git Bash rewrites any argument that starts with "/" into a Windows path before a Windows
+# program sees it: the key's name /martha-voice/anthropic-api-key reached AWS as
+# "C:/Program Files/Git/martha-voice/..." and the save was refused (2026-11-17). Every file
+# path here is converted on purpose with winpath, so the rewriting is switched off.
+export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'
 ENV_FILE="${MARTHA_VOICE_SETUP_ENV:-$HOME/.martha/voice-setup.env}"  # skill id and budget email only, never a secret
 mkdir -p "$(dirname "$ENV_FILE")"
 STACK=martha-voice
