@@ -201,6 +201,8 @@ finish() {
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
+# A region set before running wins; otherwise stage 2 finds the one this account builds in.
+REGION_GIVEN="${AWS_DEFAULT_REGION:-}"
 export AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-us-east-1}"
 export AWS_PAGER=""
 ENV_FILE="${MARTHA_VOICE_SETUP_ENV:-$HOME/.martha/voice-setup.env}"  # skill id and budget email only, never a secret
@@ -261,6 +263,24 @@ until "$AWS" login; do
 done
 ACCOUNT=$("$AWS" sts get-caller-identity --query Account --output text)
 say "Signed in to AWS account ${ACCOUNT}."
+# Accounts from AWS's newer sign-up are "projects": they build (CloudFormation, Lambda,
+# the notes table) in one region only, picked at sign-up from the contact address and
+# fixed, and us-east-1 then serves account-wide services alone. On 2026-11-17 such an
+# account's build was refused in us-east-1 and allowed in us-east-2. So unless a region
+# was set, find the one CloudFormation answers in. An Alexa skill's back end may run in
+# any Lambda region.
+region_works() { "$AWS" cloudformation list-stacks --region "$1" --max-items 1 >/dev/null 2>&1; }
+if [[ -z "$REGION_GIVEN" ]] && ! region_works "$AWS_DEFAULT_REGION"; then
+  found=""
+  for r in us-east-2 us-west-2 us-west-1 ca-central-1 eu-west-1 eu-west-2 eu-central-1 \
+           ap-southeast-2 ap-northeast-1 ap-south-1 sa-east-1; do
+    if region_works "$r"; then found="$r"; break; fi
+  done
+  [[ -n "$found" ]] || { warn "AWS refused building in every region tried. Sign in again (run this again), and if"
+                         warn "it still fails, run it with your account's region set: AWS_DEFAULT_REGION=<region> bash ..."; exit 1; }
+  export AWS_DEFAULT_REGION="$found"
+fi
+say "Building in region ${AWS_DEFAULT_REGION}."
 pause
 
 # ── 3 ─────────────────────────────────────────────────────────────────────
@@ -327,7 +347,9 @@ fi
 read -r MARTHA_VOICE_KEY_ID MARTHA_VOICE_SECRET < <("$AWS" iam create-access-key --user-name "$PC_USER" \
   --query 'AccessKey.[AccessKeyId,SecretAccessKey]' --output text)
 [[ -n "${MARTHA_VOICE_SECRET:-}" ]] || { warn "AWS didn't make the key. Run this again."; exit 1; }
-export MARTHA_VOICE_KEY_ID MARTHA_VOICE_SECRET
+# The region goes with the key: without it Martha would look for the notes in us-east-1.
+MARTHA_VOICE_REGION="$AWS_DEFAULT_REGION"
+export MARTHA_VOICE_KEY_ID MARTHA_VOICE_SECRET MARTHA_VOICE_REGION
 note "Waiting 15 seconds for AWS to switch the new key on..."
 sleep 15
 if "$PY" "$(winpath "$ROOT/.claude/skills/martha/scripts/martha_voice.py")" setup --from-env; then

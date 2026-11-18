@@ -57,6 +57,10 @@ account can use it.
    and choose the **Paid plan**: the Free plan closes the account after six months and deletes it
    90 days later, and voice notes would stop with it. Everything here stays inside the amounts AWS
    never charges for at household use.
+   AWS's newer sign-up can instead make a "project" account, which builds in one region only,
+   chosen from your address and fixed (Ohio, us-east-2, for one household in November 2026). The
+   setup script finds that region by itself; nothing to choose. If the account shows **Upgrade
+   plan** in the console, upgrade it: that is the Paid plan.
 2. **The AWS command-line tool.** On Windows: `winget install Amazon.AWSCLI`. On a Mac or Linux,
    AWS's installer from [aws.amazon.com/cli](https://aws.amazon.com/cli/).
 3. **The setup script.** It walks you through the rest in six short stages, and is safe to re-run.
@@ -133,7 +137,7 @@ things:
 |---|---|
 | AWS access key id | The access key id from the AWS console (above) |
 | AWS secret access key (hidden) | The secret from the AWS console. Nothing shows as you paste it; that is expected. Press Enter. |
-| Region [us-east-1] | Enter, unless the table was put in another region |
+| Region [us-east-1] | The region the setup script said it built in ("Building in region ..."); Enter if us-east-1 |
 | Table [martha-voice] | Enter, unless the table was given another name |
 
 It saves `voice-credentials.json` in your profile folder, beside `martha-config.md` (`PROFILE.md`
