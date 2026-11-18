@@ -1,0 +1,37 @@
+#!/bin/sh
+# Guards every push to the public repository, MagicTurtle-s/Martha.
+#
+# 1. History: each pushed commit must descend from the public repository's first commit and
+#    from nothing else. This project's earlier private history starts from other first commits
+#    and holds one household's personal details; a push carrying any of it is refused.
+# 2. Content: the pushed commit's files must pass the secret and personal-data checks
+#    (release/check.mjs C1 and C2), whatever route the commit took to get here.
+#
+# Any error while checking refuses the push. Pushes to any other repository (a fork, say) are
+# not checked here. Turn on once per clone:  git config core.hooksPath .githooks
+PUBLIC_ROOT="413e7545829237236bd4f10d6c71c32595c79a4f"
+
+# GitHub ignores letter case in owner and repository names, so compare in lower case.
+url=$(printf '%s' "$2" | tr 'A-Z' 'a-z')
+case "$url" in
+  *github.com[:/]magicturtle-s/martha | *github.com[:/]magicturtle-s/martha/ | \
+  *github.com[:/]magicturtle-s/martha.git | *github.com[:/]magicturtle-s/martha.git/) ;;
+  *) exit 0 ;;
+esac
+
+refuse() {
+  echo "pre-push: refused. $1" >&2
+  exit 1
+}
+
+top=$(git rev-parse --show-toplevel) || refuse "cannot find this repository's folder."
+zero=0000000000000000000000000000000000000000
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ "$local_sha" = "$zero" ] && continue   # deleting a branch or tag publishes nothing
+  roots=$(git rev-list --max-parents=0 "$local_sha") || refuse "cannot read the history of $local_ref."
+  [ "$roots" = "$PUBLIC_ROOT" ] ||
+    refuse "$local_ref holds history that was never public (it does not start only from $PUBLIC_ROOT)."
+  node "$top/release/check.mjs" --from "$local_sha" --only C1,C2 --no-plugin >&2 ||
+    refuse "$local_ref fails the secret or personal-data check above."
+done
+exit 0

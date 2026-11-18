@@ -1,104 +1,25 @@
 # Contributing to Martha
 
-Thank you for your interest in contributing to Martha! This document explains how to contribute, especially for adding support for new grocery stores.
+Martha started as one household's weekly shop. Issues and pull requests that make it work for more households are welcome.
 
-## Ways to Contribute
+## Good first contributions
 
-### 1. Add a New Store Adapter
+- **Another store.** Martha talks to Kroger through `.claude/skills/martha/scripts/martha_kroger.py`, which does three things: search the store's products with prices and promotions, look up one product, and add items to the cart. A store with an official API could get a sibling client offering the same three functions. Please open an issue first to agree on the shape.
+- **Setup that went wrong for you.** If [KROGER-SETUP.md](.claude/skills/martha/KROGER-SETUP.md) or [PINTEREST-SETUP.md](.claude/skills/martha/PINTEREST-SETUP.md) lost you somewhere, an issue saying where helps the next person.
+- **Diets and nutrition standards.** The config supports per-person restrictions and a ZOE or macro standard. Others are welcome when they come with clear rules Claude can follow.
 
-The most impactful contribution is adding support for a new grocery store. Martha currently supports Kroger, but the architecture is designed to support any store with online ordering.
+## Before you open a pull request
 
-#### How to Add a Store
+1. Run the tests and the release checks (the checks need Node 22.18 or newer):
+   ```
+   python -m unittest discover -s tests
+   claude plugin test mods/chef-clawd
+   node release/check.mjs
+   ```
+   To have git run the secret and personal-data checks before every commit, turn on the repository's hooks once: `git config core.hooksPath .githooks`.
+2. Leave your household out: no names, addresses, store ids, account emails or credentials in the repo. Those belong in your profile folder (`martha-config.md`, `martha-memory.json`, `*-credentials.json`, the plans in `outputs/`), which git already ignores. The checks catch email addresses, phone numbers and street addresses on their own; to have them catch your names too, list them in `release/deny-list.local.txt`, which git ignores as well.
+3. Never add anything that places an order or checks out. Martha fills the cart, and a person places the order.
 
-1. **Read the spec**: Review `.claude/skills/martha/stores/STORE-ADAPTER-SPEC.md` for the required format
-2. **Study the reference**: Look at `stores/kroger.md` as a working example
-3. **Create your adapter**: Make a new file `stores/{store-name}.md`
-4. **Test manually**: Verify the patterns work by testing in a browser
-5. **Submit a PR**: Include test results and any known limitations
+## Chef Clawd
 
-#### Stores We'd Love to See
-
-- Walmart
-- Instacart (multi-store)
-- Amazon Fresh
-- Whole Foods
-- Safeway/Albertsons
-- Publix
-- H-E-B
-- Costco
-- Target
-- Aldi (where online ordering available)
-
-### 2. Improve Existing Adapters
-
-If you use a supported store and find issues:
-
-- Document new element patterns that work better
-- Add optimized search terms for common items
-- Report and fix known issues
-- Add direct product URLs for staple items
-
-### 3. Recipe Source Integrations
-
-Help improve recipe discovery:
-
-- Document patterns for popular recipe sites
-- Add dietary filter strategies for different sites
-- Improve recipe parsing accuracy
-
-### 4. Documentation
-
-- Improve setup instructions
-- Add troubleshooting guides
-- Translate documentation
-- Create video tutorials
-
-## Submitting a Pull Request
-
-### For Store Adapters
-
-Your PR should include:
-
-1. **The adapter file**: `stores/{store-name}.md`
-2. **Test results**: Brief description of what you tested
-3. **Known limitations**: Any issues or unsupported features
-4. **Region info**: What countries/regions this works in
-
-### PR Template
-
-```markdown
-## Store Adapter: {Store Name}
-
-### Tested Features
-- [ ] Search and add to cart
-- [ ] Quantity adjustment
-- [ ] Fulfillment mode selection (pickup/delivery)
-- [ ] Cart verification
-- [ ] Parallel agent compatibility
-
-### Test Environment
-- Region: {country/state}
-- Date tested: {date}
-- Browser: Chrome with Claude for Chrome extension
-
-### Known Limitations
-- {any issues or unsupported features}
-
-### Screenshots
-{optional: include relevant screenshots}
-```
-
-## Code of Conduct
-
-- Be respectful and constructive
-- Test your contributions before submitting
-- Document any limitations honestly
-- Help others who are trying to contribute
-
-## Questions?
-
-Open an issue if you have questions about contributing or need help with a store adapter.
-
-## License
-
-By contributing, you agree that your contributions will be licensed under the MIT License.
+Changes to the mod in `mods/chef-clawd` need `claude plugin validate mods/chef-clawd` and `claude plugin test mods/chef-clawd` to pass. Chef Clawd is an unofficial fan mod. Clawd and Claude are Anthropic's; this project is not affiliated with or endorsed by Anthropic.

@@ -1,0 +1,47 @@
+{
+  "version": 2,
+  "last_updated": null,
+  "pinterest_last_pull": null,
+  "recipe_library": [],
+  "weeks": [],
+  "loved_ingredients": [],
+  "disliked_ingredients": [],
+  "adult_snacks_recent": [],
+  "notes": [
+    "Fresh memory file. No history yet - the first run is a cold start."
+  ],
+  "_templates": {
+    "recipe": {
+      "id": "",
+      "name": "",
+      "slot": "salad | dinner | breakfast",
+      "source_url": "",
+      "rating": "unrated",
+      "notes": "",
+      "times_served": 0,
+      "last_served": null,
+      "base_servings": 0,
+      "active_minutes": 0,
+      "plants": [],
+      "key_ingredients": [],
+      "reheats_well": true,
+      "tags": []
+    },
+    "week": {
+      "week_of": "",
+      "breakfast_id": "",
+      "salad_id": "",
+      "dinner_ids": [],
+      "carried_over": [],
+      "plant_count": 0,
+      "order_subtotal": 0,
+      "order_all_in": 0,
+      "order_placed": false,
+      "plan_only": false,
+      "cart_started": false,
+      "substitutions": [],
+      "feedback_collected": false,
+      "feedback_asked": false
+    }
+  }
+}

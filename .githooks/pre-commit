@@ -1,0 +1,5 @@
+#!/bin/sh
+# Refuses a commit whose staged files hold a secret, a credential file, or (when you keep
+# release/deny-list.local.txt) a personal detail. Turn on once per clone:
+#   git config core.hooksPath .githooks
+exec node "$(git rev-parse --show-toplevel)/release/check.mjs" --from index --only C1,C2 --no-plugin

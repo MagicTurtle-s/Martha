@@ -1,0 +1,6 @@
+{
+  "name": "chef-clawd",
+  "version": "0.3.0",
+  "description": "Chef Clawd above the prompt: toque and ladle; stirs a pot while a prompt runs.",
+  "author": { "name": "MagicTurtle-s" }
+}

@@ -1,9 +1,6 @@
 # Claude Code artifacts
 .claude/plans/
 
-# User configuration (contains personal data)
-.claude/skills/martha/config.md
-
 # Logs
 *.log
 logs/
@@ -22,11 +19,33 @@ Thumbs.db
 *.swp
 *.swo
 
+# Your household: Martha's config and memory hold personal details
+martha-config.md
+martha-memory.json
+martha-memory.broken-*.json
+martha-plan-*.md
+profile-location.txt
+outputs/
+.claude/skills/martha/config.md
+
 # Sensitive data (should never be committed)
 *.env
 .env.*
 credentials.json
+*-credentials.json
+*token*.json
 secrets.json
+.secrets-out/
+
+# Release zips are built outside the repository; never commit one
+*.zip
+settings.local.json
+
+# Release checks: the deny-list names real people and places, so it stays local
+release/*.local.*
+
+# Scratch files some Claude tools leave behind
+tmpclaude-*
 
 # Node modules (if any tooling is added)
 node_modules/

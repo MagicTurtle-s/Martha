@@ -1,0 +1,4 @@
+# Git hooks are shell scripts: Windows line endings would break them on checkout.
+.githooks/* text eol=lf
+*.py text eol=lf
+*.gif binary

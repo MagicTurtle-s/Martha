@@ -1,0 +1,15 @@
+{
+  "name": "martha-meal-planning",
+  "owner": {
+    "name": "MagicTurtle-s"
+  },
+  "metadata": {
+    "description": "Martha, a Claude skill for weekly meal plans and a Kroger cart, and Chef Clawd, an optional Claude Code mod that cooks above the prompt."
+  },
+  "plugins": [
+    {
+      "name": "chef-clawd",
+      "source": "./mods/chef-clawd"
+    }
+  ]
+}

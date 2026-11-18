@@ -1,0 +1,5 @@
+# Written by Claude Code when it loads the mod.
+.claude-plugin/types/
+preview*.html
+tsconfig.json
+gifs/
