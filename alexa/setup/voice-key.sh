@@ -16,10 +16,11 @@ set -euo pipefail
 
 WHO="${1:-}"
 case "$WHO" in
+  # What the policy simulator must allow, as action@item-kind (notes or the context record).
   computer) KEY_USER=martha-voice-pc
-            ALLOWED_WANT=$'dynamodb:DeleteItem\ndynamodb:PutItem\ndynamodb:Query' ;;
+            ALLOWED_WANT=$'dynamodb:DeleteItem@note\ndynamodb:PutItem@context\ndynamodb:Query@note' ;;
   phone)    KEY_USER=martha-voice-phone
-            ALLOWED_WANT='dynamodb:Query' ;;
+            ALLOWED_WANT='dynamodb:Query@note' ;;
   *) printf 'usage: bash alexa/setup/voice-key.sh computer|phone\n' >&2; exit 2 ;;
 esac
 
@@ -93,11 +94,21 @@ TABLE=$(aws_text cloudformation describe-stacks --stack-name "$STACK" \
 say "2/4 Asking AWS's policy simulator what $KEY_USER may do..."
 USER_ARN=$(aws_text iam get-user --user-name "$KEY_USER" --query User.Arn)
 TABLE_ARN=$(aws_text dynamodb describe-table --table-name "$TABLE" --query Table.TableArn)
-verdicts=$(aws_text iam simulate-principal-policy --policy-source-arn "$USER_ARN" \
-  --action-names dynamodb:Query dynamodb:DeleteItem dynamodb:PutItem dynamodb:UpdateItem dynamodb:Scan dynamodb:DeleteTable \
-  --resource-arns "$TABLE_ARN" --query 'EvaluationResults[].[EvalActionName,EvalDecision]')
+# The simulator has to be told the region and which items a call touches. Without the region, an
+# account whose organization allows one region only (AWS's newer "project" accounts) comes back
+# denied for everything (2026-11-19). Each kind of item is asked about separately.
+simulate() {
+  aws_text iam simulate-principal-policy --policy-source-arn "$USER_ARN" \
+    --action-names dynamodb:Query dynamodb:DeleteItem dynamodb:PutItem dynamodb:UpdateItem dynamodb:Scan dynamodb:DeleteTable \
+    --resource-arns "$TABLE_ARN" \
+    --context-entries "ContextKeyName=aws:RequestedRegion,ContextKeyValues=$AWS_DEFAULT_REGION,ContextKeyType=string" \
+                      "ContextKeyName=dynamodb:LeadingKeys,ContextKeyValues=$1,ContextKeyType=stringList" \
+    --query 'EvaluationResults[].[EvalActionName,EvalDecision]' | awk -v k="$1" 'NF{print $1 "@" k "\t" $2}'
+}
+verdicts=$(simulate note; simulate context)
 printf '%s\n' "$verdicts" | sed 's/^/      /'
-allowed=$(printf '%s\n' "$verdicts" | awk '$2=="allowed"{print $1}' | sort)
+allowed=$(printf '%s\n' "$verdicts" | awk '$2=="allowed"{print $1}' | LC_ALL=C sort)
+ALLOWED_WANT=$(printf '%s\n' "$ALLOWED_WANT" | LC_ALL=C sort)
 if [[ "$allowed" != "$ALLOWED_WANT" ]]; then
   warn "$KEY_USER may do something other than what it should. No key was made."
   exit 1
