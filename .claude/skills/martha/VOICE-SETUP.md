@@ -253,5 +253,7 @@ and Alexa still takes new ones until the skill is switched off too.
 
 The signing in `martha_voice.py` is checked against the worked Signature Version 4 example AWS
 publishes, and the client is tested offline. It has read a live table (`check` and `notes`,
-2026-11-19). Not yet run live: `done`, `context`, and `voice-key.sh` (either mode).
+2026-11-19), and `voice-key.sh` has made both keys live (2026-11-19): the computer's key passed
+`check`, and the phone key listed notes and refused a delete. Not yet run live: `done`,
+`context`, and a phone's Claude reading notes through the attached file.
 If a step fails, open an issue with the message it printed (never the credentials file).
