@@ -17,7 +17,8 @@ Table (shared with the skill's Lambda; keys pk and sk, both strings):
 
 Credentials: voice-credentials.json (fields in VOICE-SETUP.md step 6), found in this order:
   $MARTHA_VOICE_CREDS (a full path), $MARTHA_DIR/voice-credentials.json, the profile folder named in
-  ~/.martha/profile-location.txt, anything under /mnt/user-data/uploads/ (a Cowork session),
+  ~/.martha/profile-location.txt, a chat's attached files under /mnt/user-data/uploads/
+  (claude.ai or Cowork; a name with a prefix counts),
   ~/.martha/voice-credentials.json
 Unlike the Kroger client, nothing is read at import: `setup` has to run before the file exists.
 
@@ -33,6 +34,7 @@ DEFAULT_TABLE = "martha-voice"
 SERVICE = "dynamodb"
 TARGET = "DynamoDB_20120810."
 COWORK_OUT = "/mnt/user-data/outputs"
+UPLOADS = "/mnt/user-data/uploads"  # where a chat's attached files appear (claude.ai, Cowork)
 UNAVAILABLE = "voice notes unavailable, the run continues without them"
 SETUP_AGAIN = "run `python3 martha_voice.py setup` again with the household's PC key (VOICE-SETUP.md step 6)"
 READ_ONLY = ("this is the phone's read-only key: it lists notes but can't delete them or write the week's "
@@ -57,6 +59,16 @@ def _profile_location():
         return ""
 
 
+def _uploaded(root):
+    """voice-credentials.json among a chat's attached files, exact name first. claude.ai can add a
+    prefix to an attached file's name (seen from a phone, 2026-11-19), so a .json whose name holds
+    "voice-credentials" counts too."""
+    stem = os.path.splitext(_NAME)[0]
+    exact = sorted(glob.glob(os.path.join(root, "**", _NAME), recursive=True))
+    loose = sorted(set(glob.glob(os.path.join(root, "**", "*" + stem + "*.json"), recursive=True)) - set(exact))
+    return exact + loose
+
+
 def _resolve():
     """The credentials file, or None: voice notes are optional, so a missing file is not an error yet."""
     home = os.path.expanduser("~")
@@ -65,7 +77,7 @@ def _resolve():
         candidates.append(os.path.join(os.environ["MARTHA_DIR"], _NAME))
     if _profile_location():
         candidates.append(os.path.join(_profile_location(), _NAME))
-    candidates += sorted(glob.glob("/mnt/user-data/uploads/**/" + _NAME, recursive=True))
+    candidates += _uploaded(UPLOADS)
     candidates.append(os.path.join(home, ".martha", _NAME))
     for c in candidates:
         if c and os.path.exists(c):

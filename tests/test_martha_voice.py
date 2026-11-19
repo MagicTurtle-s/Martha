@@ -239,6 +239,45 @@ class VoiceTests(unittest.TestCase):
                 self.assertEqual(code, 2); self.assertIn("usage", out.lower())
 
 
+class UploadedKeyTests(unittest.TestCase):
+    """A key file attached to a claude.ai chat. From a phone (2026-11-19) the attached file's name
+    came with a prefix, the search missed it, and the phone's Claude had to set MARTHA_VOICE_CREDS."""
+    def setUp(self):
+        self.empty = Path(tempfile.mkdtemp())       # MARTHA_DIR with no key in it
+        self.uploads = Path(tempfile.mkdtemp())     # stands in for /mnt/user-data/uploads
+        self.mod = load(self.empty)
+
+    def put(self, rel):
+        p = self.uploads / rel; p.parent.mkdir(parents=True, exist_ok=True); p.write_text("{}"); return str(p)
+
+    def resolve(self):
+        with mock.patch.dict(os.environ, dict(ENV, MARTHA_DIR=str(self.empty))), \
+             mock.patch.object(self.mod, "UPLOADS", str(self.uploads)):
+            return self.mod._resolve()
+
+    def test_a_prefixed_attachment_is_found(self):
+        want = self.put("1a2b3c4d-voice-credentials.json")
+        self.assertEqual(self.resolve(), want)
+
+    def test_a_renamed_copy_is_found(self):
+        want = self.put("voice-credentials (1).json")
+        self.assertEqual(self.resolve(), want)
+
+    def test_the_exact_name_wins_over_a_prefixed_one(self):
+        self.put("aaa-voice-credentials.json"); want = self.put("sub/voice-credentials.json")
+        self.assertEqual(self.resolve(), want)
+
+    def test_other_files_are_not_taken_for_the_key(self):
+        for name in ("kroger-credentials.json", "notes.json", "voice-credentials.txt", "voice-notes.json"):
+            self.put(name)
+        self.assertIsNone(self.resolve())
+
+    def test_no_uploads_folder_is_fine(self):
+        with mock.patch.dict(os.environ, dict(ENV, MARTHA_DIR=str(self.empty))), \
+             mock.patch.object(self.mod, "UPLOADS", str(self.uploads / "not-there")):
+            self.assertIsNone(self.mod._resolve())
+
+
 class ReadOnlyKeyTests(unittest.TestCase):
     """A phone's key (alexa/setup/phone-key.sh) lists notes and refuses everything else before AWS."""
     def setUp(self):
