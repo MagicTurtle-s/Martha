@@ -7,7 +7,8 @@ against Kroger from this file.
 
 Credentials: kroger-credentials.json (fields in KROGER-SETUP.md), found in this order:
   $KROGER_CREDS (a full path), $MARTHA_DIR/kroger-credentials.json, the profile folder named in
-  ~/.martha/profile-location.txt, anything under /mnt/user-data/uploads/ (a Cowork session),
+  ~/.martha/profile-location.txt, a chat's attached files under /mnt/user-data/uploads/
+  (claude.ai or Cowork; a name with a prefix counts),
   ~/.martha/kroger-credentials.json
 Kroger rotates the refresh token on EVERY use: user_token() writes the new one back at once.
 Lose it and the next run needs a fresh sign-in.
@@ -20,6 +21,7 @@ AUTHORIZE = BASE + "/connect/oauth2/authorize"
 TOKEN = BASE + "/connect/oauth2/token"
 SCOPES = "cart.basic:write product.compact profile.compact"
 COWORK_OUT = "/mnt/user-data/outputs"
+UPLOADS = "/mnt/user-data/uploads"  # where a chat's attached files appear (claude.ai, Cowork)
 SIGN_IN_AGAIN = "sign in again: run `python3 martha_kroger.py auth` (KROGER-SETUP.md step 4)"
 
 
@@ -32,6 +34,16 @@ def _profile_location():
         return ""
 
 
+def _uploaded(root):
+    """kroger-credentials.json among a chat's attached files, exact name first. claude.ai can add a
+    prefix to an attached file's name (seen with Martha's voice key, 2026-11-19), so a .json whose
+    name holds "kroger-credentials" counts too."""
+    stem = os.path.splitext(_NAME)[0]
+    exact = sorted(glob.glob(os.path.join(root, "**", _NAME), recursive=True))
+    loose = sorted(set(glob.glob(os.path.join(root, "**", "*" + stem + "*.json"), recursive=True)) - set(exact))
+    return exact + loose
+
+
 def _resolve():
     home = os.path.expanduser("~")
     candidates = [os.environ.get("KROGER_CREDS", "")]
@@ -39,7 +51,7 @@ def _resolve():
         candidates.append(os.path.join(os.environ["MARTHA_DIR"], _NAME))
     if _profile_location():
         candidates.append(os.path.join(_profile_location(), _NAME))
-    candidates += sorted(glob.glob("/mnt/user-data/uploads/**/" + _NAME, recursive=True))
+    candidates += _uploaded(UPLOADS)
     candidates.append(os.path.join(home, ".martha", _NAME))
     for c in candidates:
         if c and os.path.exists(c):

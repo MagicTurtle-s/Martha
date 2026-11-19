@@ -179,6 +179,51 @@ class KrogerTests(unittest.TestCase):
         self.assertEqual(code, 2); self.assertIn("usage", out.lower())
 
 
+class KrogerUploadedKeyTests(unittest.TestCase):
+    """A Kroger key file attached to a claude.ai chat or Cowork session. claude.ai can add a prefix
+    to an attached file's name (seen with Martha's voice key from a phone, 2026-11-19), and the
+    search wanted the exact name."""
+    def setUp(self):
+        home = Path(tempfile.mkdtemp())            # a fake home: never the real ~/.martha
+        self.dir = Path(tempfile.mkdtemp())        # MARTHA_DIR, with a key so the module loads
+        (self.dir / "kroger-credentials.json").write_text(json.dumps({
+            "client_id": "test-app", "client_secret": "s3cret", "refresh_token": "r", "store_location_id": "01234567"}))
+        self.k = load("martha_kroger", self.dir)
+        self.empty = Path(tempfile.mkdtemp())      # MARTHA_DIR with no key in it
+        self.uploads = Path(tempfile.mkdtemp())    # stands in for /mnt/user-data/uploads
+        self.env = {"MARTHA_DIR": str(self.empty), "KROGER_CREDS": "", "HOME": str(home), "USERPROFILE": str(home)}
+
+    def put(self, rel):
+        p = self.uploads / rel; p.parent.mkdir(parents=True, exist_ok=True); p.write_text("{}"); return str(p)
+
+    def resolve(self, uploads=None):
+        with mock.patch.dict(os.environ, self.env),              mock.patch.object(self.k, "UPLOADS", str(uploads or self.uploads)):
+            return self.k._resolve()
+
+    def test_a_prefixed_attachment_is_found(self):
+        want = self.put("1a2b3c4d-kroger-credentials.json")
+        self.assertEqual(self.resolve(), want)
+
+    def test_a_renamed_copy_is_found(self):
+        want = self.put("kroger-credentials (1).json")
+        self.assertEqual(self.resolve(), want)
+
+    def test_the_exact_name_wins_over_a_prefixed_one(self):
+        self.put("aaa-kroger-credentials.json"); want = self.put("sub/kroger-credentials.json")
+        self.assertEqual(self.resolve(), want)
+
+    def test_other_files_are_not_taken_for_the_key(self):
+        for name in ("voice-credentials.json", "pinterest-credentials.json", "kroger-credentials.txt", "kroger-cart.json"):
+            self.put(name)
+        with self.assertRaises(SystemExit):
+            self.resolve()
+
+    def test_no_uploads_folder_still_says_where_to_look(self):
+        with self.assertRaises(SystemExit) as e:
+            self.resolve(self.uploads / "not-there")
+        self.assertIn("KROGER-SETUP.md", str(e.exception))
+
+
 class PinterestTests(unittest.TestCase):
     def setUp(self):
         self.dir = Path(tempfile.mkdtemp())
