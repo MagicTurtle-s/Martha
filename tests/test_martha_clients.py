@@ -274,5 +274,40 @@ class PinterestTests(unittest.TestCase):
         self.assertEqual(code, 2); self.assertIn("usage", out.lower())
 
 
+class PinterestUploadedKeyTests(unittest.TestCase):
+    """A Pinterest key file attached to a chat whose name claude.ai prefixed (see the Kroger ones)."""
+    def setUp(self):
+        home = Path(tempfile.mkdtemp())            # a fake home: never the real ~/.martha
+        self.dir = Path(tempfile.mkdtemp())        # MARTHA_DIR, with a key so the module loads
+        (self.dir / "pinterest-credentials.json").write_text(json.dumps({
+            "app_id": "123", "app_secret": "s", "access_token": "tok", "access_expires": 10**12, "refresh_token": "r"}))
+        self.p = load("martha_pinterest", self.dir)
+        self.empty = Path(tempfile.mkdtemp())
+        self.uploads = Path(tempfile.mkdtemp())
+        self.env = {"MARTHA_DIR": str(self.empty), "PINTEREST_CREDS": "", "HOME": str(home), "USERPROFILE": str(home)}
+
+    def put(self, rel):
+        p = self.uploads / rel; p.parent.mkdir(parents=True, exist_ok=True); p.write_text("{}"); return str(p)
+
+    def resolve(self, uploads=None):
+        with mock.patch.dict(os.environ, self.env),              mock.patch.object(self.p, "UPLOADS", str(uploads or self.uploads)):
+            return self.p._resolve()
+
+    def test_a_prefixed_attachment_is_found(self):
+        want = self.put("1a2b3c4d-pinterest-credentials.json")
+        self.assertEqual(self.resolve(), want)
+
+    def test_the_exact_name_wins_over_a_prefixed_one(self):
+        self.put("aaa-pinterest-credentials.json"); want = self.put("sub/pinterest-credentials.json")
+        self.assertEqual(self.resolve(), want)
+
+    def test_other_files_are_not_taken_for_the_key(self):
+        for name in ("kroger-credentials.json", "voice-credentials.json", "pinterest-credentials.txt", "pins.json"):
+            self.put(name)
+        with self.assertRaises(SystemExit) as e:
+            self.resolve()
+        self.assertIn("PINTEREST-SETUP.md", str(e.exception))
+
+
 if __name__ == "__main__":
     unittest.main()
