@@ -170,6 +170,45 @@ The file holds the secret. Keep it in the profile folder only: never in a repo, 
 email. `MARTHA_VOICE_CREDS` can point at the file instead (a full path), the way `KROGER_CREDS`
 does for Kroger. Martha never prints the file.
 
+### A new key for this computer
+
+When the key file is lost or broken (`check` says the key is wrong), the script makes a fresh key
+and replaces the file in place, with no console clicking:
+
+```
+bash alexa/setup/voice-key.sh computer
+```
+
+It signs this computer in to AWS if needed (a browser window opens), finds the region the build
+is in, asks AWS's own policy simulator what `martha-voice-pc` may do and stops if that is anything
+other than reading and deleting notes and writing the context record, then saves the key and runs
+`check`. Then it offers to delete the computer's older key, which nothing here can use any more.
+
+## Reading notes from a phone (optional)
+
+The computer's key stays on the computer. For a phone, make a second key that can **only list
+notes**: it can't delete one, file one or write anything, and cancelling it doesn't touch the
+computer's key. Run, on the computer:
+
+```
+bash alexa/setup/voice-key.sh phone
+```
+
+It adds a user `martha-voice-phone` to the build, has AWS's policy simulator confirm that reading
+is the only thing it may do, makes its key, and saves it as
+`~/.martha/phone-key/voice-credentials.json` (marked `"read_only": true`). Then:
+
+1. On the computer, at claude.ai, start a new chat (call it "Martha notes") and attach that file.
+2. On the phone, open the same chat in the Claude app whenever you want the notes and ask: *Clone
+   the Martha repo and run `python3 .claude/skills/martha/scripts/martha_voice.py notes`.* Martha
+   finds an attached `voice-credentials.json` by itself.
+
+Notes read this way stay in the table: Martha files and deletes them at the next run on the
+computer. The worst a stolen phone key allows is reading the household's waiting notes. To cancel
+it: AWS console > IAM > Users > `martha-voice-phone` > Security credentials > Deactivate (or
+Delete) the key, and delete the chat. Not yet tried: whether a claude.ai **project's** files reach
+the phone's code the way a chat attachment does, so the chat is the way that is expected to work.
+
 ## 7. Turn voice notes on
 
 Tell Martha "turn voice notes on", or set this row in the Outputs section of `martha-config.md`:
@@ -213,5 +252,6 @@ and Alexa still takes new ones until the skill is switched off too.
 ## Not yet tested
 
 The signing in `martha_voice.py` is checked against the worked Signature Version 4 example AWS
-publishes, and the client is tested offline, but it has not yet been run against a live table.
+publishes, and the client is tested offline. It has read a live table (`check` and `notes`,
+2026-11-19). Not yet run live: `done`, `context`, and `voice-key.sh` (either mode).
 If a step fails, open an issue with the message it printed (never the credentials file).

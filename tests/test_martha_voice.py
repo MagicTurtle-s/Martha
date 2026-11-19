@@ -9,7 +9,10 @@ SCRIPTS = Path(__file__).resolve().parent.parent / ".claude" / "skills" / "marth
 # AWS's documentation example key pair (not a real key).
 KEY_ID = "AKIAIOSFODNN7EXAMPLE"
 SECRET = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-ENV = {"MARTHA_VOICE_CREDS": "", "KROGER_CREDS": "", "PINTEREST_CREDS": ""}
+# A fake home folder for every test. Without it, a test whose folder holds no key finds the real
+# ~/.martha/voice-credentials.json and setup saves the example key over it (it did, 2026-11-19).
+FAKE_HOME = tempfile.mkdtemp(prefix="martha-test-home-")
+ENV = {"MARTHA_VOICE_CREDS": "", "KROGER_CREDS": "", "PINTEREST_CREDS": "", "HOME": FAKE_HOME, "USERPROFILE": FAKE_HOME}
 
 
 def load(creds_dir):
@@ -223,11 +226,10 @@ class VoiceTests(unittest.TestCase):
         home = Path(tempfile.mkdtemp())
         (home / ".martha").mkdir()
         (home / ".martha" / "profile-location.txt").write_text(str(self.dir) + "\n")
-        with mock.patch.dict(os.environ, {"HOME": str(home), "USERPROFILE": str(home)}):
-            with mock.patch.dict(os.environ, dict(ENV, MARTHA_DIR="")):
-                spec = importlib.util.spec_from_file_location("voice_located", SCRIPTS / "martha_voice.py")
-                mod = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(mod)
+        with mock.patch.dict(os.environ, dict(ENV, MARTHA_DIR="", HOME=str(home), USERPROFILE=str(home))):
+            spec = importlib.util.spec_from_file_location("voice_located", SCRIPTS / "martha_voice.py")
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
         self.assertEqual(Path(mod.CREDS_PATH), self.creds)
 
     def test_command_line_without_a_command_prints_usage_and_calls_nobody(self):
@@ -235,6 +237,35 @@ class VoiceTests(unittest.TestCase):
             with self.subTest(args=args):
                 code, out = run_cli(self.dir, *args)
                 self.assertEqual(code, 2); self.assertIn("usage", out.lower())
+
+
+class ReadOnlyKeyTests(unittest.TestCase):
+    """A phone's key (alexa/setup/phone-key.sh) lists notes and refuses everything else before AWS."""
+    def setUp(self):
+        self.dir = Path(tempfile.mkdtemp())
+        (self.dir / "voice-credentials.json").write_text(json.dumps({
+            "aws_access_key_id": KEY_ID, "aws_secret_access_key": SECRET, "region": "us-east-2",
+            "table": "martha-voice", "read_only": True}))
+        self.v = load(self.dir)
+
+    def test_it_lists_notes(self):
+        item = note("2026-11-19T13:56:15.806Z", "n1", "like the meals they planned this week", {"kind": "meal_feedback", "unclear": False})
+        with mock.patch.object(self.v.urllib.request, "urlopen", return_value=Reply({"Items": [item]})):
+            self.assertEqual([n["id"] for n in self.v.notes()], ["n1"])
+
+    def test_it_refuses_to_delete_notes_without_calling_aws(self):
+        with mock.patch.object(self.v.urllib.request, "urlopen") as urlopen, self.assertRaises(SystemExit) as e:
+            self.v.done(["n1"])
+        self.assertIn("read-only", str(e.exception)); urlopen.assert_not_called()
+
+    def test_it_refuses_to_write_the_context_without_calling_aws(self):
+        with mock.patch.object(self.v.urllib.request, "urlopen") as urlopen, self.assertRaises(SystemExit) as e:
+            self.v.write_context("2026-11-16", ["Chili"], ["Sam"])
+        self.assertIn("read-only", str(e.exception)); urlopen.assert_not_called()
+
+    def test_the_command_line_says_so_too(self):
+        code, out = run_cli(self.dir, "done", "n1")
+        self.assertNotEqual(code, 0); self.assertIn("read-only", out)
 
 
 class SetupTests(unittest.TestCase):
@@ -304,6 +335,33 @@ class SetupTests(unittest.TestCase):
         with mock.patch.dict(os.environ, {"MARTHA_VOICE_KEY_ID": "", "MARTHA_VOICE_SECRET": ""}), self.assertRaises(SystemExit):
             self.v.main(["setup", "--from-env"])
         self.assertFalse((self.dir / "voice-credentials.json").exists())
+
+    def test_setup_from_env_read_only_marks_the_file(self):
+        keys = {"MARTHA_VOICE_KEY_ID": KEY_ID, "MARTHA_VOICE_SECRET": SECRET, "MARTHA_VOICE_READ_ONLY": "1"}
+        with mock.patch.dict(os.environ, keys), mock.patch.object(self.v.urllib.request, "urlopen", return_value=Reply({"Items": []})), \
+                contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(self.v.main(["setup", "--from-env"]), 0)
+        self.assertIs(json.loads((self.dir / "voice-credentials.json").read_text())["read_only"], True)
+
+    def test_a_phone_key_never_lands_on_top_of_the_computers_key(self):
+        # The computer's key is found first in the search order; an explicit MARTHA_VOICE_CREDS for a
+        # file that doesn't exist yet must still be where the new key goes.
+        pc = {"aws_access_key_id": KEY_ID, "aws_secret_access_key": SECRET, "region": "us-east-2", "table": "martha-voice"}
+        (self.dir / "voice-credentials.json").write_text(json.dumps(pc))
+        v = load(self.dir)
+        phone = Path(tempfile.mkdtemp()) / "voice-credentials.json"
+        keys = {"MARTHA_VOICE_KEY_ID": "AKIAI44QH8DHBEXAMPLE", "MARTHA_VOICE_SECRET": "je7MtGbClwBF/2Zp9Utk/h3yCo8nvbEXAMPLEKEY",
+                "MARTHA_VOICE_REGION": "us-east-2", "MARTHA_VOICE_READ_ONLY": "1", "MARTHA_VOICE_CREDS": str(phone)}
+        with mock.patch.dict(os.environ, keys), mock.patch.object(v.urllib.request, "urlopen", return_value=Reply({"Items": []})), \
+                contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(v.main(["setup", "--from-env"]), 0)
+        self.assertEqual(json.loads((self.dir / "voice-credentials.json").read_text()), pc)  # untouched
+        saved = json.loads(phone.read_text())
+        self.assertEqual((saved["aws_access_key_id"], saved["read_only"]), ("AKIAI44QH8DHBEXAMPLE", True))
+
+    def test_tests_never_see_the_real_home_folder(self):
+        self.assertEqual(os.path.expanduser("~"), FAKE_HOME)
+        self.assertFalse(str(self.v.CREDS_PATH or "").startswith(str(Path.home())) and FAKE_HOME not in str(self.v.CREDS_PATH or ""))
 
     def test_no_cowork_folder_is_created_on_a_normal_machine(self):
         if os.path.isdir(self.v.COWORK_OUT):

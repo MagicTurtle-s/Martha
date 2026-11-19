@@ -8,7 +8,8 @@ small context record the skill reads (this week's meal names and the household's
 nothing else). Setup: VOICE-SETUP.md.
 
 The computer's AWS key may only Query pk="note", DeleteItem a note and PutItem the context item,
-so those are the only calls made here.
+so those are the only calls made here. A phone's key (alexa/setup/phone-key.sh) may only Query: its
+file says "read_only": true, and `done` and `context` refuse it before calling AWS.
 
 Table (shared with the skill's Lambda; keys pk and sk, both strings):
   note     pk="note", sk="<said_at>#<id>"; id, said_at, words, understood (a JSON string), interpreter
@@ -34,6 +35,8 @@ TARGET = "DynamoDB_20120810."
 COWORK_OUT = "/mnt/user-data/outputs"
 UNAVAILABLE = "voice notes unavailable, the run continues without them"
 SETUP_AGAIN = "run `python3 martha_voice.py setup` again with the household's PC key (VOICE-SETUP.md step 6)"
+READ_ONLY = ("this is the phone's read-only key: it lists notes but can't delete them or write the week's "
+             "context, so Martha files them on the household's computer (VOICE-SETUP.md, Reading notes from a phone)")
 REGION_RE = re.compile(r"[a-z]{2}(-[a-z]+)+-\d{1,2}")
 TABLE_RE = re.compile(r"[A-Za-z0-9_.-]{3,255}")
 KEY_ID_RE = re.compile(r"[A-Z0-9]{16,128}")
@@ -339,6 +342,8 @@ def done(ids):
     """Deletes the notes with these ids (ids from notes()). Each key is taken from the note itself,
     found with one Query, so only a note that exists can be deleted, never the context record.
     Returns (deleted ids, ids not found)."""
+    if _creds().get("read_only"):
+        raise SystemExit(READ_ONLY)
     wanted = [i for i in dict.fromkeys(ids) if i]
     keys = {}
     for raw in _raw_notes():
@@ -364,6 +369,8 @@ def _names(value, field):
 def write_context(week_of, meals, people):
     """Writes the context record the skill reads: the week, its meal names and the household's first
     names. PutItem replaces the whole item, so nothing else is ever in it. Returns what was written."""
+    if _creds().get("read_only"):
+        raise SystemExit(READ_ONLY)
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(week_of or "")):
         raise SystemExit("the context's week_of must be a date as YYYY-MM-DD: rewrite the file and run "
                          "`python3 martha_voice.py context <file.json>` again")
@@ -398,13 +405,15 @@ def setup(from_env=False):
 
     With from_env (`setup --from-env`, used by alexa/setup/voice-setup.sh), the key comes from
     MARTHA_VOICE_KEY_ID and MARTHA_VOICE_SECRET (region and table from MARTHA_VOICE_REGION and
-    MARTHA_VOICE_TABLE, else the defaults), so it goes from AWS into the file without being shown."""
+    MARTHA_VOICE_TABLE, else the defaults), so it goes from AWS into the file without being shown.
+    MARTHA_VOICE_READ_ONLY=1 marks the file as a phone's read-only key (alexa/setup/phone-key.sh)."""
     if from_env:
         key_id = os.environ.get("MARTHA_VOICE_KEY_ID", "").strip()
         secret = os.environ.get("MARTHA_VOICE_SECRET", "").strip()
         region = os.environ.get("MARTHA_VOICE_REGION", "").strip() or DEFAULT_REGION
         table = os.environ.get("MARTHA_VOICE_TABLE", "").strip() or DEFAULT_TABLE
-        return _save_key(key_id, secret, region, table)
+        read_only = os.environ.get("MARTHA_VOICE_READ_ONLY", "").strip() == "1"
+        return _save_key(key_id, secret, region, table, read_only)
     print("Voice notes: this computer's AWS key (VOICE-SETUP.md step 6). The secret isn't shown as you type it.")
     key_id = input("AWS access key id: ").strip()
     _check_key_id(key_id)
@@ -423,7 +432,7 @@ def _check_key_id(key_id):
                          "copy it again and run setup again (VOICE-SETUP.md step 6)")
 
 
-def _save_key(key_id, secret, region, table):
+def _save_key(key_id, secret, region, table, read_only=False):
     """Validates the four values, saves voice-credentials.json, and checks it with AWS."""
     global CREDS_PATH, _C
     _check_key_id(key_id)
@@ -435,8 +444,12 @@ def _save_key(key_id, secret, region, table):
     if not TABLE_RE.fullmatch(table):
         raise SystemExit("a table name is 3 to 255 letters, digits, '_', '-' or '.': run setup again "
                          "(VOICE-SETUP.md step 6)")
-    path = CREDS_PATH or _new_path()
+    # An explicit $MARTHA_VOICE_CREDS wins even when that file doesn't exist yet: the phone key's
+    # file must never land on top of the computer's key found further down the search order.
+    path = os.environ.get("MARTHA_VOICE_CREDS", "").strip() or CREDS_PATH or _new_path()
     data = {"aws_access_key_id": key_id, "aws_secret_access_key": secret, "region": region, "table": table}
+    if read_only:
+        data["read_only"] = True
     _save(path, data)
     CREDS_PATH, _C = path, None
     print(f"Saved {_NAME} in {os.path.dirname(os.path.abspath(path))}. Checking it with AWS...")

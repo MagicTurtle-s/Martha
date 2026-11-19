@@ -113,7 +113,10 @@ all run. Row on but the check fails: one line with the reason and the `VOICE-SET
 names ("Voice notes are on, but AWS didn't accept this computer's key: `VOICE-SETUP.md` step 6.
 Planning without them."), then run as if the row were off. The client finds its key on its own,
 exits with a one-line reason when it can't be used, and is run from the command line (from this
-skill's folder; `python` on Windows), never imported.
+skill's folder; `python` on Windows), never imported. A phone's read-only key (its file says
+`"read_only": true`; `VOICE-SETUP.md`, Reading notes from a phone) only lists notes: when someone
+just asks what's waiting, run `notes` and show them; never plan a week or file notes with it,
+since `done` and `context` refuse it. They are filed at the next run on the household's computer.
 
 **Using the clients.** Both find their credentials when imported, and `martha_kroger` exits if it
 finds none, so never import it in plan-only mode.

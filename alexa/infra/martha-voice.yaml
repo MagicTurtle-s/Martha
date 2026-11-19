@@ -142,6 +142,25 @@ Resources:
                   ForAllValues:StringEquals:
                     dynamodb:LeadingKeys: [context]
 
+  # A phone's Claude may only read notes: no delete, no context write. The user has no key until
+  # the household runs alexa/setup/phone-key.sh, and a user without a key can't do anything.
+  PhoneUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: martha-voice-phone
+      Policies:
+        - PolicyName: martha-voice-phone
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: ReadNotesOnly
+                Effect: Allow
+                Action: dynamodb:Query
+                Resource: !GetAtt NotesTable.Arn
+                Condition:
+                  ForAllValues:StringEquals:
+                    dynamodb:LeadingKeys: [note]
+
   MonthlyBudget:
     Type: AWS::Budgets::Budget
     Properties:
@@ -177,5 +196,7 @@ Outputs:
     Value: !Ref NotesTable
   PcUserName:
     Value: !Ref PcUser
+  PhoneUserName:
+    Value: !Ref PhoneUser
   KeyParameter:
     Value: !Ref KeyParameter
