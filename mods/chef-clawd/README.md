@@ -26,7 +26,15 @@ and stirs the saucepan on it. In the terminal he is drawn the way Claude
 Code draws its own logo, in flat-colour quadrant blocks four rows tall; there
 is no room for a kitchen, so a cauldron rises into view for him to stir, with
 five of the acts: the kitchen fire, the pancake flip, chopping, egg juggling
-and the taste test. A band narrower than him is left as it was. Cloud
+and the taste test. A band narrower than him is left as it was.
+
+When other mods draw rows in the same band (a to-do list, say), he sits
+beside them in the band's right quarter, bottom-aligned with them, instead of
+under them; their long lines are cut short of his quarter, and their buttons
+beside him still take clicks. Beside a short band (a list folded to one line)
+he rises only that far. If one of their rows cannot get narrow enough (a long
+word, a button or a fixed width would run into his quarter), he steps out of
+the band while it shows. Cloud
 sessions watched from the Claude app draw no mods, so he does not appear
 there.
 

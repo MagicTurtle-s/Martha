@@ -1,6 +1,7 @@
 import type { EngineInterface, Register, Timer } from 'claude-code'
 
 import { IDLE_H, IDLE_W, idleSvg } from './art'
+import { place } from './beside'
 import { WORK_H, WORK_W, programme, workingSvg } from './scene'
 import { WORK_COLUMNS, idleFrame, programme as terminalProgramme, workingFrame, type Programme } from './terminal/chef'
 
@@ -150,4 +151,31 @@ export const register: Register = on => {
       </Box>
     )
   })
+
+  // In the terminal he sits beside the other mods' rows, not under them
+  // (beside.ts). His own row is asked for only in the Martha checkout, so
+  // elsewhere there is no row of his here and the band is left alone.
+  on('ui.render', { component: 'AbovePromptList' }, async ($, e, next) => {
+    const rows = e.props.rows
+    const chef = rows.filter((r) => isChef(r.plugin))
+    const rest = rows.filter((r) => !isChef(r.plugin))
+    if (e.surface !== 'terminal' || e.props.hasSurvey || !chef.length || !rest.length) return next(e)
+    const at = place(rest.map((r) => r.tree), e.props.bodyColumns)
+    if (!at) return next({ ...e, props: { ...e.props, rows: rest } })
+    const left = await next({ ...e, props: { ...e.props, rows: rest } })
+    const right = await next({ ...e, props: { ...e.props, rows: chef } })
+    const { Box } = $.ui.resolve(e)
+    return (
+      <Box flexDirection="column">
+        <Box key="others" flexDirection="column" paddingRight={at.width}>
+          {left}
+        </Box>
+        <Box key="chef" flexDirection="column" marginLeft={at.room} marginTop={-at.lift}>
+          {right}
+        </Box>
+      </Box>
+    )
+  })
 }
+
+const isChef = (plugin: string) => plugin.split('@')[0] === 'chef-clawd'
