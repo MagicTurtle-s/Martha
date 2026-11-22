@@ -102,7 +102,9 @@ that question: a save is refused by the table unless it builds on the latest cop
 
 "Who changed what?" lists the last ten saves, with who made each and from which computer. The
 table keeps the latest copy of each file, not its history; `.household/` in the profile folder
-holds this computer's copy as of its last sync, and Martha manages it.
+holds this computer's copy as of its last sync, and Martha manages it. Each time Martha combines
+your memory with the other person's, your file from just before is kept in
+`.household/before-merge/`, dated; it stays on this computer, and you can delete old ones.
 
 A phone's read-only key (`VOICE-SETUP.md`, Reading notes from a phone) can read the shared profile
 too, so the phone's Claude can answer "what's for dinner Thursday?" or "have we had this

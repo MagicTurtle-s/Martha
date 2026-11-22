@@ -470,6 +470,20 @@ def _ask_settle(folder, state, name, remote, why):
           f"Fold its changes into {name}, then run `settled {name}`.")
 
 
+def _keep_before_merge(folder, name, local):
+    """A merge replaces this computer's file, so its bytes from before stay here, in
+    .household/before-merge/. Never sent anywhere, never deleted by Martha. Returns the copy's
+    path relative to the profile folder."""
+    root, ext = os.path.splitext(os.path.basename(name))
+    stamp = re.sub(r"[^0-9TZ]", "", _now())
+    rel, n = f"{STATE_DIR}/before-merge/{root}.{stamp}{ext}", 1
+    while os.path.exists(_path(folder, rel)):
+        n += 1
+        rel = f"{STATE_DIR}/before-merge/{root}.{stamp}-{n}{ext}"
+    _write(_path(folder, rel), local)
+    return rel
+
+
 def pull(args):
     folder = profile_dir()
     state = State(folder)
@@ -506,12 +520,15 @@ def pull(args):
             code = SETTLE
             continue
         merged, conflicts = merge_memory(_parse(state.base(name)), mine, theirs)
+        kept = _keep_before_merge(folder, name, local)  # before either write below replaces the file
         if not conflicts:
             _write(path, r["data"] if merged == theirs else _dump(merged))
             state.synced(name, r["version"], r["data"])
             print(f"{name}: both changed; merged with nothing lost" +
-                  ("." if merged == theirs else ". `push` shares the result."))
+                  ("." if merged == theirs else ". `push` shares the result.") +
+                  f" This computer's file from before the merge is kept as {kept}.")
             continue
+        print(f"{name}: this computer's file from before the merge is kept as {kept}.")
         _write(path, _dump(merged))
         _write(_path(folder, _theirs(name)), r["data"])
         state.pending(name, r["version"], _sha(r["data"]))

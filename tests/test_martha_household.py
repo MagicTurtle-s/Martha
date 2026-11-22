@@ -295,6 +295,44 @@ class TwoComputers(unittest.TestCase):
         self.assertEqual(self.pc.memory(), self.laptop.memory())
         self.assertEqual(self.table.doc("doc#" + MEMORY)[0], 3)
 
+    def kept_copies(self, comp):
+        folder = comp.dir / ".household" / "before-merge"
+        return sorted(folder.iterdir()) if folder.is_dir() else []
+
+    def test_a_merge_keeps_a_copy_of_this_computers_file_from_before_it(self):
+        # A clean merge and a merge that asks both replace the local memory file: its bytes from
+        # before must stay on this computer, and a plain "took the shared copy" keeps nothing.
+        self.in_step()
+        self.assertEqual(self.kept_copies(self.laptop), [])
+        self.pc.edit(set_rating("turkey-chili", "loved"))
+        self.laptop.edit(set_rating("fish-tacos", "disliked"))
+        self.assertEqual(self.pc.run("push")[0], 0)
+        before = self.laptop.read(MEMORY)
+        code, out = self.laptop.run("pull")
+        self.assertEqual(code, 0, out)
+        copies = self.kept_copies(self.laptop)
+        self.assertEqual(len(copies), 1, out)
+        self.assertEqual(copies[0].read_bytes(), before)
+        self.assertNotEqual(self.laptop.read(MEMORY), before)
+        self.assertIn("before-merge", out)
+        self.assertEqual(self.laptop.run("push")[0], 0)
+        # The merge that asks keeps one too.
+        self.assertEqual(self.pc.run("pull")[0], 0)
+        self.pc.edit(set_rating("turkey-chili", "ok"))
+        self.laptop.edit(set_rating("turkey-chili", "banned"))
+        self.assertEqual(self.pc.run("push")[0], 0)
+        before = self.laptop.read(MEMORY)
+        code, out = self.laptop.run("pull")
+        self.assertEqual(code, 3, out)
+        copies = self.kept_copies(self.laptop)
+        self.assertEqual(len(copies), 2, out)
+        self.assertIn(before, [c.read_bytes() for c in copies])
+        # Kept copies are never sent anywhere.
+        for body in self.table.bodies:
+            self.assertNotIn("before-merge", body)
+        # The PC only ever took the shared copy: nothing to keep.
+        self.assertEqual(self.kept_copies(self.pc), [])
+
     # d
     def test_both_set_the_same_rating_differently_and_someone_is_asked(self):
         self.in_step()
