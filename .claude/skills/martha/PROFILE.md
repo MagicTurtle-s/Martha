@@ -11,6 +11,7 @@ goes into the Martha repository.
 | `pinterest-credentials.json` | Optional (`PINTEREST-SETUP.md`). |
 | `voice-credentials.json` | Optional: this computer's AWS key for voice notes (`VOICE-SETUP.md`). A secret. |
 | `outputs/` | The weekly plans, one file per week. |
+| `.household/` | Only when two people share the profile (below): what this computer last synced. |
 
 ## Where it lives: two choices
 
@@ -66,6 +67,49 @@ things yourself.
 
 In Cowork, Martha works on a folder of the computer the session is linked to. It asks once per run
 for access; pick your profile folder. A cloud profile works from every computer that syncs it.
+
+## Sharing one profile between two people (optional)
+
+Two people who each run Martha on their own computer can work from one profile: one set of
+preferences, one history of recipes, ratings and weeks, one set of plans. Whatever one of you
+changes, the other's next run starts from.
+
+It needs the voice-notes build (`VOICE-SETUP.md`): the shared copy lives in the same small table
+in your own AWS account, and each computer gets its own key to it.
+
+1. On the computer that ran the voice setup, make the second computer's key:
+   `bash alexa/setup/voice-key.sh computer2` (`VOICE-SETUP.md`, A second computer). Carry that one
+   file to the other computer yourself and put it in that computer's profile folder.
+2. On each computer, tell Martha "share our profile" (or set the Shared household row in
+   `martha-config.md` to `on`).
+3. Start with the computer that holds the most history. Its next run saves the profile to the
+   table; the other computer's next run brings it down and adds its own history to it. Recipes,
+   ratings and weeks from both are kept. Where the two computers' configs differ, Martha shows
+   both and asks.
+
+**What is shared:** `martha-config.md`, `martha-memory.json` and the weekly plan files
+(`outputs/martha-plan-*.md`). **What never is:** any credentials file. Each computer keeps its own
+Kroger sign-in, so the rule about running from one place at a time doesn't apply here. If you
+both sign in to the same Kroger account, you fill the same cart; with two accounts, a cart one of
+you fills is not in the other's account.
+
+**When you both change something.** Martha fetches the other person's changes at the start of a
+run and saves yours at the end. If you both changed things in between, different things are
+simply combined: your rating of the tacos and their rating of the chili both stand. If you both
+changed the same thing to different values (you rated the chili ok, they rated it loved; you each
+edited the budget), Martha shows both and asks which stands. Nothing is overwritten without
+that question: a save is refused by the table unless it builds on the latest copy.
+
+"Who changed what?" lists the last ten saves, with who made each and from which computer. The
+table keeps the latest copy of each file, not its history; `.household/` in the profile folder
+holds this computer's copy as of its last sync, and Martha manages it.
+
+A phone's read-only key (`VOICE-SETUP.md`, Reading notes from a phone) can read the shared profile
+too, so the phone's Claude can answer "what's for dinner Thursday?" or "have we had this
+before?". It can't save anything.
+
+To stop sharing, set the row to `off` on a computer: it keeps its files as they are and stops
+syncing. To cut a computer off, cancel its key (`VOICE-SETUP.md`).
 
 ## Keeping it in a private git repository (optional)
 

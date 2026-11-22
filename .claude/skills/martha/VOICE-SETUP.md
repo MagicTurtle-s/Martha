@@ -181,14 +181,43 @@ bash alexa/setup/voice-key.sh computer
 
 It signs this computer in to AWS if needed (a browser window opens), finds the region the build
 is in, asks AWS's own policy simulator what `martha-voice-pc` may do and stops if that is anything
-other than reading and deleting notes and writing the context record, then saves the key and runs
-`check`. Then it offers to delete the computer's older key, which nothing here can use any more.
+other than reading and deleting notes, writing the context record, and reading and saving the
+shared household profile (below), then saves the key and runs `check`. Then it offers to delete
+the computer's older key, which nothing here can use any more.
+
+### A second computer (sharing one profile)
+
+When two people each run Martha on their own computer, both computers can work from one profile
+kept in this same table (`PROFILE.md`, Sharing one profile). The second computer gets its own
+key, so either one can be cancelled without touching the other. Run, on the computer that did
+the setup:
+
+```
+bash alexa/setup/voice-key.sh computer2
+```
+
+It updates the build (which adds a user `martha-voice-pc-2` and lets the computer keys read and
+save the shared profile), has the policy simulator confirm that the new user may do exactly what
+`martha-voice-pc` may, asks for the first name of the person who uses that computer and a name
+for the computer (both show in "who changed what?"; neither is a secret), makes the key, and
+saves it as `~/.martha/second-computer-key/voice-credentials.json`. Then:
+
+1. Carry that one file to the other computer yourself: a USB stick or your own file sharing,
+   never email or a chat. Put it in that computer's profile folder and delete it here.
+2. On the other computer, `python .claude/skills/martha/scripts/martha_household.py check`
+   should answer "The shared household works".
+
+Running `voice-key.sh computer` once more on the first computer adds the same two names to its
+own key file. The keys can read and save the shared profile but never delete from it, and a save
+only goes through when it builds on the latest copy. To cancel the second computer: AWS console >
+IAM > Users > `martha-voice-pc-2` > Security credentials > Deactivate (or Delete) the key.
 
 ## Reading notes from a phone (optional)
 
-The computer's key stays on the computer. For a phone, make a second key that can **only list
-notes**: it can't delete one, file one or write anything, and cancelling it doesn't touch the
-computer's key. Run, on the computer:
+The computer's key stays on the computer. For a phone, make a second key that can **only
+read**: the waiting notes and, when the household shares one profile, that profile. It can't
+delete a note, file one or save anything, and cancelling it doesn't touch the computer's key.
+Run, on the computer:
 
 ```
 bash alexa/setup/voice-key.sh phone
@@ -204,7 +233,10 @@ is the only thing it may do, makes its key, and saves it as
    finds an attached `voice-credentials.json` by itself.
 
 Notes read this way stay in the table: Martha files and deletes them at the next run on the
-computer. The worst a stolen phone key allows is reading the household's waiting notes. To cancel
+computer. With a shared profile, `martha_household.py pull` into an empty folder gives the
+phone's Claude the household's config, history and plans to answer from. The worst a stolen
+phone key allows is reading the household's waiting notes and, when one is shared, its profile
+(who eats what, the budget, past weeks; never a sign-in). To cancel
 it: AWS console > IAM > Users > `martha-voice-phone` > Security credentials > Deactivate (or
 Delete) the key, and delete the chat. Not yet tried: whether a claude.ai **project's** files reach
 the phone's code the way a chat attachment does, so the chat is the way that is expected to work.
@@ -244,6 +276,13 @@ say: the week's date, this week's meal names, and the household's first names. N
 diets, allergies, budget, address or Kroger details. Apart from that record, Martha only reads
 notes and deletes the ones it has filed.
 
+With the Shared household row on (`PROFILE.md`, Sharing one profile), more leaves: the whole of
+`martha-config.md`, `martha-memory.json` and the weekly plan files go to the same table in your
+own AWS account, with the first name and computer name of whoever saved them. That includes
+diets, the budget and the store, and anyone holding one of the household's keys can read them. A credentials file never
+goes: the client refuses any file with "credentials" in its name and anything that isn't one of
+those three kinds.
+
 ## Turning it off
 
 Set the Voice notes row to `off`. Martha stops reading notes; any left in the table stay there,
@@ -258,4 +297,9 @@ publishes, and the client is tested offline. It has read a live table (`check` a
 notes through the attached file (2026-11-19). It had to point `MARTHA_VOICE_CREDS` at the file,
 because claude.ai had added a prefix to the file's name. Martha now finds a prefixed name by
 itself; that is tested offline only. Not yet run live: `done` and `context`.
+
+The shared household (`martha_household.py`) is tested offline only, with two pretend computers
+and a stand-in table that refuses a save the way DynamoDB does. Not yet run live: the client
+against a real table, `voice-key.sh computer2`, the build update that lets the keys use the
+shared profile, and the Cowork and phone paths in `SKILL.md` Step 0.
 If a step fails, open an issue with the message it printed (never the credentials file).

@@ -159,6 +159,7 @@ const wordRe = (term) => new RegExp(`(?<![A-Za-z0-9])${term.replace(/[.*+?^${}()
   // Files that live on the user's machine by design, never in the repo.
   const USER_FILES = new Set([
     'martha-config.md', 'martha-memory.json', 'kroger-credentials.json', 'pinterest-credentials.json', 'voice-credentials.json',
+    'martha-memory.theirs.json', 'state.json',  // the shared household's files in the profile folder
     'settings.json', 'settings.local.json', 'claude_desktop_config.json', 'preview.html', 'index.d.ts',
   ]);
   const EXT = 'md|py|json|html|ts|tsx|mjs|js|gif|png|txt|zip|ya?ml';

@@ -27,7 +27,8 @@ household places the order.
 | `PREPPED-FIRST.md` | Buy the vegetable already cut. |
 | `ZOE-STANDARDS.md` | The `zoe` nutrition standard. |
 | `BROWSER-PLAYBOOK.md` | The Apple Note and the Alexa list, through Claude in Chrome. Used only when configured. |
-| `scripts/martha_kroger.py`, `scripts/martha_pinterest.py`, `scripts/martha_voice.py` | The API clients (Python 3, standard library only). Use them; don't rewrite them. |
+| `scripts/martha_kroger.py`, `scripts/martha_pinterest.py`, `scripts/martha_voice.py`, `scripts/martha_household.py` | The API clients (Python 3, standard library only). Use them; don't rewrite them. |
+| `.household/` | Only with a shared household: what this computer last synced with the shared copy. Lives in the profile folder. Never edit it. |
 
 ## Asking questions: pop-up choices where the session has them
 
@@ -117,6 +118,32 @@ skill's folder; `python` on Windows), never imported. A phone's read-only key (i
 `"read_only": true`; `VOICE-SETUP.md`, Reading notes from a phone) only lists notes: when someone
 just asks what's waiting, run `notes` and show them; never plan a week or file notes with it,
 since `done` and `context` refuse it. They are filed at the next run on the household's computer.
+
+**Shared household** is on only when the config's Shared household row says `on` AND
+`python3 scripts/martha_household.py check` passes. One copy of the config, the memory and the
+plan files then lives in the household's own table (the voice-notes build), and each person's
+computer works from it (`PROFILE.md`, Sharing one profile). Row off or blank: say nothing about
+it all run. Row on but the check fails: one line with the reason it printed, then run on this
+computer's files as they are. Like the voice client it is run from the command line, never
+imported, and it can't read or send a credentials file: every computer keeps its own Kroger
+sign-in.
+
+- **Before reading the config and memory for the run**, run
+  `python3 scripts/martha_household.py pull`, then read the files (the config again, if it
+  changed). When it took someone else's changes, say so in one line in the opening message
+  ("Riley rated two dinners since your last run").
+- **Exit code 3: the same file changed on both sides.** The memory is already merged except for
+  the fields it lists: this computer's value is in the file, the other one in
+  `martha-memory.theirs.json`. Ask about each in one message ("You rated the chili ok, Riley
+  rated it loved: which stands?") and write the answers. For the config or a plan file the other
+  copy sits beside it as `*.theirs.md`: fold its changes into the file, asking only where the two
+  contradict. Then run `settled <file name>` for each, which removes the `.theirs` copy.
+- **In Cowork**, also stage `.household/state.json` and the files under `.household/base/`. Copy
+  every staged profile file into one working folder with the same layout, set `$MARTHA_DIR` to
+  it for the client, and commit `.household/` back with the rest.
+- **In a chat with no profile folder (a phone):** make an empty working folder, set `$MARTHA_DIR`
+  to it and `pull`: that folder is the profile for the run. A read-only key reads everything and
+  `push` refuses it: answer from the profile, and say that changes are saved from a computer.
 
 **Using the clients.** Both find their credentials when imported, and `martha_kroger` exits if it
 finds none, so never import it in plan-only mode.
@@ -531,6 +558,14 @@ profile folder (a temp file) holding `week_of`, `meals` (this week's recipe name
 it: no diets, budget, address or Kroger data. If it fails, say so in one line; the run is
 otherwise done.
 
+**Shared household (only when on, Step 0).** After the memory save, run
+`python3 scripts/martha_household.py push --note "<one line: what this run did>"` ("planned the
+week of 11/23 and filled the cart"). Exit code 4 means someone else saved while this run was
+going, and nothing of theirs was overwritten: `pull`, settle anything it lists (Step 0), then
+`push` again. The same pair wraps every save outside a full run (feedback, a settings change, an
+order confirmed): `pull` before reading, `push` after saving. If `push` fails for another
+reason, say so in one line: this computer's files are saved, and the next run shares them.
+
 A standing rule stated mid-run ("always the 12-count cheese sticks", "never olives", "just remind
 me about the coupons") goes into `martha-config.md` the same turn; say so in one line. A one-week
 skip goes nowhere. Feedback that arrives on its own later ("we loved that chili") follows the
@@ -635,6 +670,8 @@ must be public. Store
 | "Plan only this week" | Runs without prices or cart writes, even with credentials |
 | "We loved that chili" | The feedback path in `MEMORY.md` |
 | "Set up voice notes" | Walks through `VOICE-SETUP.md`. The user runs step 6 (`martha_voice.py setup`) in their own terminal: the AWS secret is typed there, never in chat. Then sets the config's Voice notes row to `on` |
+| "Who changed what?" | `python3 scripts/martha_household.py log`: the last ten saves to the shared household, newest first, with who made each and from which computer |
+| "Share our profile" | Walks through `PROFILE.md`, Sharing one profile. The user runs the key script in their own terminal. Then sets the config's Shared household row to `on` |
 
 ## Non-negotiables
 
@@ -647,8 +684,9 @@ must be public. Store
   Pinterest and AWS are the user's. A one-time OAuth code pasted by the user is fine.
 - **Never place the order, never check out**, and never pick the delivery or pickup slot. Never
   send email. The only outside writes are the Kroger cart, the Apple Note, checking off Alexa
-  items that went into the cart, deleting voice notes once filed, and writing the voice context
-  record (meal names and first names only), each only when configured.
+  items that went into the cart, deleting voice notes once filed, writing the voice context
+  record (meal names and first names only), and saving the config, memory and plan files to the
+  shared household in the household's own table, each only when configured.
 - Never propose a recipe served inside the repeat window (a carried-over dinner is the one
   exception).
 - If you cannot verify a price, say so rather than estimating and calling it a price. Never

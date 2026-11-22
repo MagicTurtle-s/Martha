@@ -118,6 +118,7 @@ Loved products (Martha buys this exact item; the UPCs here are made up):
 | Apple Note link (optional; needs Claude in Chrome) | |
 | Alexa list name (optional; Martha reads it into the cart and checks off what it added; needs Claude in Chrome) | Shopping |
 | Voice notes (optional; needs `VOICE-SETUP.md`) | off |
+| Shared household (optional; one profile for two people's computers, `PROFILE.md`) | off |
 
 ## Coupons
 
