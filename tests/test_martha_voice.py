@@ -382,6 +382,21 @@ class SetupTests(unittest.TestCase):
             self.assertEqual(self.v.main(["setup", "--from-env"]), 0)
         self.assertIs(json.loads((self.dir / "voice-credentials.json").read_text())["read_only"], True)
 
+    def test_setup_from_env_keeps_who_uses_the_computer_across_a_new_key(self):
+        # The shared household's log names the person and the computer; a replacement key keeps them.
+        def setup(keys):
+            with mock.patch.dict(os.environ, keys), mock.patch.object(self.v.urllib.request, "urlopen", return_value=Reply({"Items": []})), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(self.v.main(["setup", "--from-env"]), 0)
+            return json.loads((self.dir / "voice-credentials.json").read_text())
+        saved = setup({"MARTHA_VOICE_KEY_ID": KEY_ID, "MARTHA_VOICE_SECRET": SECRET,
+                       "MARTHA_VOICE_PERSON": "Sam", "MARTHA_VOICE_DEVICE": "the kitchen PC"})
+        self.assertEqual((saved["person"], saved["device"]), ("Sam", "the kitchen PC"))
+        saved = setup({"MARTHA_VOICE_KEY_ID": "AKIAI44QH8DHBEXAMPLE", "MARTHA_VOICE_SECRET": SECRET,
+                       "MARTHA_VOICE_PERSON": "", "MARTHA_VOICE_DEVICE": ""})
+        self.assertEqual((saved["aws_access_key_id"], saved["person"], saved["device"]),
+                         ("AKIAI44QH8DHBEXAMPLE", "Sam", "the kitchen PC"))
+
     def test_a_phone_key_never_lands_on_top_of_the_computers_key(self):
         # The computer's key is found first in the search order; an explicit MARTHA_VOICE_CREDS for a
         # file that doesn't exist yet must still be where the new key goes.

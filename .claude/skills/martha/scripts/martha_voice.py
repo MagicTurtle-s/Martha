@@ -8,7 +8,7 @@ small context record the skill reads (this week's meal names and the household's
 nothing else). Setup: VOICE-SETUP.md.
 
 The computer's AWS key may only Query pk="note", DeleteItem a note and PutItem the context item,
-so those are the only calls made here. A phone's key (alexa/setup/phone-key.sh) may only Query: its
+so those are the only calls made here. A phone's key (alexa/setup/voice-key.sh phone) may only Query: its
 file says "read_only": true, and `done` and `context` refuse it before calling AWS.
 
 Table (shared with the skill's Lambda; keys pk and sk, both strings):
@@ -238,14 +238,26 @@ def _from_attr(attr):
     return value  # binary and set types are not used by Martha's table
 
 
-def _refused(e, c):
-    """Plain words for an AWS error. Only the error type is shown: the message can name the account."""
+class Refused(Exception):
+    """An AWS error a caller asked to see for itself (`_call(..., expect=...)`); `kind` is its type."""
+    def __init__(self, kind):
+        super().__init__(kind)
+        self.kind = kind
+
+
+def _error_info(e):
+    """The JSON body of an AWS error, or {} when it has none."""
     try:
         info = json.load(e)
     except Exception:
         info = {}
-    if not isinstance(info, dict):
-        info = {}
+    return info if isinstance(info, dict) else {}
+
+
+def _refused(e, c, info=None):
+    """Plain words for an AWS error. Only the error type is shown: the message can name the account."""
+    if info is None:
+        info = _error_info(e)
     kind = str(info.get("__type") or "").rsplit("#", 1)[-1] or "no error type"
     said = str(info.get("message") or info.get("Message") or "").lower()  # read, never shown
     where = f"HTTP {e.code}, {kind}"
@@ -265,8 +277,10 @@ def _refused(e, c):
             "`python3 martha_voice.py check` (VOICE-SETUP.md step 6)")
 
 
-def _call(op, payload):
-    """One signed DynamoDB call (JSON 1.0 protocol). Errors exit with what happened and what to do."""
+def _call(op, payload, expect=()):
+    """One signed DynamoDB call (JSON 1.0 protocol). Errors exit with what happened and what to do,
+    except an error type named in `expect`, which is raised as Refused for the caller to handle
+    (the shared-household client needs to see a refused conditional write)."""
     c = _creds()
     host = f"dynamodb.{c['region']}.amazonaws.com"
     body = json.dumps(payload).encode("utf-8")
@@ -279,7 +293,11 @@ def _call(op, payload):
         with urllib.request.urlopen(req, timeout=20) as r:
             return json.load(r)
     except urllib.error.HTTPError as e:
-        raise SystemExit(_refused(e, c)) from None
+        info = _error_info(e)
+        kind = str(info.get("__type") or "").rsplit("#", 1)[-1]
+        if kind and kind in expect:
+            raise Refused(kind) from None
+        raise SystemExit(_refused(e, c, info)) from None
     except (urllib.error.URLError, OSError, http.client.HTTPException, ValueError) as e:
         reason = getattr(e, "reason", None) or type(e).__name__
         raise SystemExit(f"AWS didn't answer ({reason}): {UNAVAILABLE}") from None
@@ -418,14 +436,17 @@ def setup(from_env=False):
     With from_env (`setup --from-env`, used by alexa/setup/voice-setup.sh), the key comes from
     MARTHA_VOICE_KEY_ID and MARTHA_VOICE_SECRET (region and table from MARTHA_VOICE_REGION and
     MARTHA_VOICE_TABLE, else the defaults), so it goes from AWS into the file without being shown.
-    MARTHA_VOICE_READ_ONLY=1 marks the file as a phone's read-only key (alexa/setup/phone-key.sh)."""
+    MARTHA_VOICE_READ_ONLY=1 marks the file as a phone's read-only key (alexa/setup/voice-key.sh).
+    MARTHA_VOICE_PERSON and MARTHA_VOICE_DEVICE (optional, not secrets) name who uses the computer
+    and the computer itself, for the shared household's who-changed-what log (martha_household.py)."""
     if from_env:
         key_id = os.environ.get("MARTHA_VOICE_KEY_ID", "").strip()
         secret = os.environ.get("MARTHA_VOICE_SECRET", "").strip()
         region = os.environ.get("MARTHA_VOICE_REGION", "").strip() or DEFAULT_REGION
         table = os.environ.get("MARTHA_VOICE_TABLE", "").strip() or DEFAULT_TABLE
         read_only = os.environ.get("MARTHA_VOICE_READ_ONLY", "").strip() == "1"
-        return _save_key(key_id, secret, region, table, read_only)
+        who = {k: os.environ.get("MARTHA_VOICE_" + k.upper(), "").strip() for k in ("person", "device")}
+        return _save_key(key_id, secret, region, table, read_only, **who)
     print("Voice notes: this computer's AWS key (VOICE-SETUP.md step 6). The secret isn't shown as you type it.")
     key_id = input("AWS access key id: ").strip()
     _check_key_id(key_id)
@@ -444,8 +465,10 @@ def _check_key_id(key_id):
                          "copy it again and run setup again (VOICE-SETUP.md step 6)")
 
 
-def _save_key(key_id, secret, region, table, read_only=False):
-    """Validates the four values, saves voice-credentials.json, and checks it with AWS."""
+def _save_key(key_id, secret, region, table, read_only=False, person="", device=""):
+    """Validates the four values, saves voice-credentials.json, and checks it with AWS. The file's
+    `person` and `device` (who uses this computer, and its name) are kept from the file being
+    replaced unless new ones are given."""
     global CREDS_PATH, _C
     _check_key_id(key_id)
     if not secret or any(ch.isspace() for ch in secret):
@@ -462,6 +485,15 @@ def _save_key(key_id, secret, region, table, read_only=False):
     data = {"aws_access_key_id": key_id, "aws_secret_access_key": secret, "region": region, "table": table}
     if read_only:
         data["read_only"] = True
+    try:
+        with open(path, encoding="utf-8-sig") as f:
+            old = json.load(f)
+    except (OSError, ValueError):
+        old = {}
+    for k, v in (("person", person), ("device", device)):
+        v = v or (old.get(k) if isinstance(old, dict) and isinstance(old.get(k), str) else "")
+        if v:
+            data[k] = v[:60]
     _save(path, data)
     CREDS_PATH, _C = path, None
     print(f"Saved {_NAME} in {os.path.dirname(os.path.abspath(path))}. Checking it with AWS...")
