@@ -1,8 +1,9 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >-
-  Martha voice notes: a small notes table, the Martha Meal skill's back end, a narrow key user for
-  the household's computer, and a monthly budget alert. Everything here stays inside the AWS free
-  tier at household volume. Guide: .claude/skills/martha/VOICE-SETUP.md.
+  Martha voice notes: a small notes table, the Martha Meal skill's back end, narrow key users for
+  the household's computers and a phone, and a monthly budget alert. The same table can hold one
+  shared copy of the household's profile (PROFILE.md, Sharing one profile). Everything here stays
+  inside the AWS free tier at household volume. Guide: .claude/skills/martha/VOICE-SETUP.md.
 
 Parameters:
   AlexaSkillId:
@@ -115,7 +116,8 @@ Resources:
       Principal: alexa-appkit.amazon.com
       EventSourceToken: !Ref AlexaSkillId
 
-  # The household's computer may only read and delete notes and write the week's context record.
+  # The household's computer may only read and delete notes, write the week's context record, and
+  # read and save the shared household profile.
   PcUser:
     Type: AWS::IAM::User
     Properties:
@@ -141,9 +143,63 @@ Resources:
                 Condition:
                   ForAllValues:StringEquals:
                     dynamodb:LeadingKeys: [context]
+              # The shared household profile (config, memory, plan files, the who-changed-what log):
+              # read and save, never delete. A save is conditional, so it can't overwrite a newer one.
+              - Sid: ReadAndSaveHousehold
+                Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:Query
+                  - dynamodb:PutItem
+                Resource: !GetAtt NotesTable.Arn
+                Condition:
+                  ForAllValues:StringEquals:
+                    dynamodb:LeadingKeys: [household]
 
-  # A phone's Claude may only read notes: no delete, no context write. The user has no key until
-  # the household runs alexa/setup/phone-key.sh, and a user without a key can't do anything.
+  # A second computer in the household (a partner's laptop) gets its own user and its own key, so
+  # either computer's key can be cancelled without touching the other's. Same rights as PcUser. The
+  # user has no key until the household runs alexa/setup/voice-key.sh computer2.
+  Pc2User:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: martha-voice-pc-2
+      Policies:
+        - PolicyName: martha-voice-pc-2
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: ReadAndDeleteNotes
+                Effect: Allow
+                Action:
+                  - dynamodb:Query
+                  - dynamodb:DeleteItem
+                Resource: !GetAtt NotesTable.Arn
+                Condition:
+                  ForAllValues:StringEquals:
+                    dynamodb:LeadingKeys: [note]
+              - Sid: WriteContext
+                Effect: Allow
+                Action: dynamodb:PutItem
+                Resource: !GetAtt NotesTable.Arn
+                Condition:
+                  ForAllValues:StringEquals:
+                    dynamodb:LeadingKeys: [context]
+              # The shared household profile (config, memory, plan files, the who-changed-what log):
+              # read and save, never delete. A save is conditional, so it can't overwrite a newer one.
+              - Sid: ReadAndSaveHousehold
+                Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:Query
+                  - dynamodb:PutItem
+                Resource: !GetAtt NotesTable.Arn
+                Condition:
+                  ForAllValues:StringEquals:
+                    dynamodb:LeadingKeys: [household]
+
+  # A phone's Claude may only read: the notes and the shared household profile. No delete, no
+  # context write, no save. The user has no key until the household runs
+  # alexa/setup/voice-key.sh phone, and a user without a key can't do anything.
   PhoneUser:
     Type: AWS::IAM::User
     Properties:
@@ -160,6 +216,15 @@ Resources:
                 Condition:
                   ForAllValues:StringEquals:
                     dynamodb:LeadingKeys: [note]
+              - Sid: ReadHouseholdOnly
+                Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:Query
+                Resource: !GetAtt NotesTable.Arn
+                Condition:
+                  ForAllValues:StringEquals:
+                    dynamodb:LeadingKeys: [household]
 
   MonthlyBudget:
     Type: AWS::Budgets::Budget
@@ -196,6 +261,8 @@ Outputs:
     Value: !Ref NotesTable
   PcUserName:
     Value: !Ref PcUser
+  Pc2UserName:
+    Value: !Ref Pc2User
   PhoneUserName:
     Value: !Ref PhoneUser
   KeyParameter:

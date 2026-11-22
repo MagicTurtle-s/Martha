@@ -1,27 +1,34 @@
 #!/usr/bin/env bash
 #
-# Martha voice notes: a new key for this computer, or a read-only key for a phone's Claude
-# (VOICE-SETUP.md, "A new key for this computer" and "Reading notes from a phone"). Run it after
-# voice-setup.sh has built everything once, in Git Bash on Windows or a terminal on macOS or Linux:
+# Martha voice notes: a new key for this computer, a key for a second computer in the household, or
+# a read-only key for a phone's Claude (VOICE-SETUP.md, "A new key for this computer", "A second
+# computer" and "Reading notes from a phone"). Run it after voice-setup.sh has built everything
+# once, in Git Bash on Windows or a terminal on macOS or Linux:
 #   bash alexa/setup/voice-key.sh computer    # replaces this computer's key file
+#   bash alexa/setup/voice-key.sh computer2   # makes a key file to carry to a second computer
 #   bash alexa/setup/voice-key.sh phone       # makes a read-only key file for a phone
 #
-# It finds the region the build lives in, updates the build (the phone user is new), asks AWS's own
-# policy simulator what the key's user may do and stops if that is more than it should be, makes the
-# user one key, and saves it with martha_voice.py, which checks it. A key is never shown. AWS allows
-# a user two keys; the script stops at two, and after a new computer key it offers to delete the
-# computer's older key (its secret is no longer on this computer once the new one is saved).
+# It finds the region the build lives in, updates the build (so the key users and what they may do
+# match alexa/infra/martha-voice.yaml), asks AWS's own policy simulator what the key's user may do
+# and stops if that is anything other than it should be, makes the user one key, and saves it with
+# martha_voice.py, which checks it. A key is never shown. AWS allows a user two keys; the script
+# stops at two, and after a new computer key it offers to delete the computer's older key (its
+# secret is no longer on this computer once the new one is saved). A second computer's or a phone's
+# older key is left alone: it may still be in use on that device.
 
 set -euo pipefail
 
 WHO="${1:-}"
+# What the policy simulator must allow, as action@item-kind (notes, the context record, or the
+# shared household profile). A computer reads and files notes, writes the context, and reads and
+# saves the household; a phone only reads notes and the household.
+COMPUTER_MAY=$'dynamodb:DeleteItem@note\ndynamodb:GetItem@household\ndynamodb:PutItem@context\ndynamodb:PutItem@household\ndynamodb:Query@household\ndynamodb:Query@note'
 case "$WHO" in
-  # What the policy simulator must allow, as action@item-kind (notes or the context record).
-  computer) KEY_USER=martha-voice-pc
-            ALLOWED_WANT=$'dynamodb:DeleteItem@note\ndynamodb:PutItem@context\ndynamodb:Query@note' ;;
-  phone)    KEY_USER=martha-voice-phone
-            ALLOWED_WANT='dynamodb:Query@note' ;;
-  *) printf 'usage: bash alexa/setup/voice-key.sh computer|phone\n' >&2; exit 2 ;;
+  computer)  KEY_USER=martha-voice-pc;   ALLOWED_WANT="$COMPUTER_MAY"; LABEL=computer ;;
+  computer2) KEY_USER=martha-voice-pc-2; ALLOWED_WANT="$COMPUTER_MAY"; LABEL="second computer" ;;
+  phone)     KEY_USER=martha-voice-phone; LABEL=phone
+             ALLOWED_WANT=$'dynamodb:GetItem@household\ndynamodb:Query@household\ndynamodb:Query@note' ;;
+  *) printf 'usage: bash alexa/setup/voice-key.sh computer|computer2|phone\n' >&2; exit 2 ;;
 esac
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -32,6 +39,7 @@ export AWS_PAGER=""
 export MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'
 ENV_FILE="${MARTHA_VOICE_SETUP_ENV:-$HOME/.martha/voice-setup.env}"
 PHONE_DIR="${MARTHA_PHONE_KEY_DIR:-$HOME/.martha/phone-key}"
+SECOND_DIR="${MARTHA_SECOND_KEY_DIR:-$HOME/.martha/second-computer-key}"
 STACK=martha-voice
 
 say()  { printf '  %s\n' "$1"; }
@@ -60,7 +68,7 @@ BUDGET_EMAIL=$(grep -m1 '^BUDGET_EMAIL=' "$ENV_FILE" | cut -d= -f2- | tr -d '\r'
 [[ -n "$SKILL_ID" && -n "$BUDGET_EMAIL" ]] \
   || { warn "$ENV_FILE is missing the skill id or budget email: run voice-setup.sh again."; exit 1; }
 
-printf '\n  Martha voice notes: a new %s key\n\n' "$WHO"
+printf '\n  Martha voice notes: a new %s key\n\n' "$LABEL"
 if ! "$AWS" sts get-caller-identity >/dev/null 2>&1; then
   say "Signing this computer in to AWS. A browser window opens."
   "$AWS" login || { warn "The sign-in didn't finish. Run this again when you're ready."; exit 1; }
@@ -99,13 +107,13 @@ TABLE_ARN=$(aws_text dynamodb describe-table --table-name "$TABLE" --query Table
 # denied for everything (2026-11-19). Each kind of item is asked about separately.
 simulate() {
   aws_text iam simulate-principal-policy --policy-source-arn "$USER_ARN" \
-    --action-names dynamodb:Query dynamodb:DeleteItem dynamodb:PutItem dynamodb:UpdateItem dynamodb:Scan dynamodb:DeleteTable \
+    --action-names dynamodb:Query dynamodb:GetItem dynamodb:DeleteItem dynamodb:PutItem dynamodb:UpdateItem dynamodb:Scan dynamodb:DeleteTable \
     --resource-arns "$TABLE_ARN" \
     --context-entries "ContextKeyName=aws:RequestedRegion,ContextKeyValues=$AWS_DEFAULT_REGION,ContextKeyType=string" \
                       "ContextKeyName=dynamodb:LeadingKeys,ContextKeyValues=$1,ContextKeyType=stringList" \
     --query 'EvaluationResults[].[EvalActionName,EvalDecision]' | awk -v k="$1" 'NF{print $1 "@" k "\t" $2}'
 }
-verdicts=$(simulate note; simulate context)
+verdicts=$(simulate note; simulate context; simulate household)
 printf '%s\n' "$verdicts" | sed 's/^/      /'
 allowed=$(printf '%s\n' "$verdicts" | awk '$2=="allowed"{print $1}' | LC_ALL=C sort)
 ALLOWED_WANT=$(printf '%s\n' "$ALLOWED_WANT" | LC_ALL=C sort)
@@ -130,9 +138,20 @@ export MARTHA_VOICE_KEY_ID MARTHA_VOICE_SECRET MARTHA_VOICE_REGION MARTHA_VOICE_
 if [[ "$WHO" == phone ]]; then
   mkdir -p "$PHONE_DIR"
   export MARTHA_VOICE_READ_ONLY=1 MARTHA_VOICE_CREDS="$(winpath "$PHONE_DIR/voice-credentials.json")"
+elif [[ "$WHO" == computer2 ]]; then
+  # Its own folder, so it can never land on top of this computer's key file.
+  mkdir -p "$SECOND_DIR"
+  unset MARTHA_VOICE_READ_ONLY
+  export MARTHA_VOICE_CREDS="$(winpath "$SECOND_DIR/voice-credentials.json")"
 else
   # The computer's file is wherever martha_voice.py finds it (or the profile folder): replaced in place.
   unset MARTHA_VOICE_READ_ONLY MARTHA_VOICE_CREDS
+fi
+if [[ "$WHO" != phone && -z "${MARTHA_VOICE_PERSON:-}" ]]; then
+  # Shown in the shared household's who-changed-what log. Not a secret; Enter skips each.
+  read -r -p "  First name of the person who uses that computer (Enter to skip): " MARTHA_VOICE_PERSON || true
+  read -r -p "  A name for the computer, such as 'the kitchen PC' (Enter to skip): " MARTHA_VOICE_DEVICE || true
+  export MARTHA_VOICE_PERSON MARTHA_VOICE_DEVICE
 fi
 say "Waiting 15 seconds for AWS to switch the new key on..."
 sleep 15
@@ -163,8 +182,13 @@ fi
 printf '\n'
 if [[ "$WHO" == phone ]]; then
   say "Done. The phone key is in: $(winpath "$PHONE_DIR/voice-credentials.json")"
-  say "It can list notes and nothing else. VOICE-SETUP.md, 'Reading notes from a phone', says how"
-  say "to give it to your phone's Claude, and how to cancel it."
+  say "It can read notes and the shared household, and change nothing. VOICE-SETUP.md, 'Reading"
+  say "notes from a phone', says how to give it to your phone's Claude, and how to cancel it."
+elif [[ "$WHO" == computer2 ]]; then
+  say "Done. The second computer's key is in: $(winpath "$SECOND_DIR/voice-credentials.json")"
+  say "Carry that one file to the other computer yourself (a USB stick or your own file sharing,"
+  say "never email or a chat), put it in that computer's profile folder, then delete it here."
+  say "VOICE-SETUP.md, 'A second computer', has the rest, and how to cancel the key."
 else
   say "Done. This computer reads Martha's notes again."
 fi
