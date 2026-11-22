@@ -298,8 +298,11 @@ notes through the attached file (2026-11-19). It had to point `MARTHA_VOICE_CRED
 because claude.ai had added a prefix to the file's name. Martha now finds a prefixed name by
 itself; that is tested offline only. Not yet run live: `done` and `context`.
 
-The shared household (`martha_household.py`) is tested offline only, with two pretend computers
-and a stand-in table that refuses a save the way DynamoDB does. Not yet run live: the client
-against a real table, `voice-key.sh computer2`, the build update that lets the keys use the
-shared profile, and the Cowork and phone paths in `SKILL.md` Step 0.
+The shared household (`martha_household.py`) is tested offline with two pretend computers and a
+stand-in table that refuses a save the way DynamoDB does. It has also run against a live table
+(2026-11-22): the build update and `voice-key.sh computer2` made the second computer's key; the
+first computer saved a profile; the second computer's key read it back identical and saved a
+change; a save from an out-of-date copy was refused; and the first computer's `pull` took the
+change. Not yet run live: a `pull` that has to merge or ask (`settled`), the phone key reading
+the shared profile, and the Cowork and phone paths in `SKILL.md` Step 0.
 If a step fails, open an issue with the message it printed (never the credentials file).

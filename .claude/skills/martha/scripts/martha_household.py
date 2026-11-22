@@ -22,8 +22,9 @@ tell your changes from theirs).
 Exit codes: 0 done; 1 couldn't run (the message says why); 2 usage; 3 both sides changed something
 and a person (or Martha) has to settle it; 4 someone else saved first.
 
-Checked offline against a stand-in table (tests/test_martha_household.py); not yet run against a
-live table.
+Checked offline against a stand-in table (tests/test_martha_household.py). Run against a live table
+on 2026-11-22: check, status, pull, push (a first save and a later one), a refused out-of-date save,
+and log. A pull that merges or asks has run offline only.
 """
 import os, re, sys, json, gzip, glob, uuid, base64, socket, hashlib, argparse, importlib.util
 from datetime import datetime, timezone, timedelta
