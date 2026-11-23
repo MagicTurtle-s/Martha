@@ -355,7 +355,9 @@ publishes, and the client is tested offline. It has read a live table (`check` a
 `check`, and the phone key listed notes and refused a delete. A phone's Claude has read the
 notes through the attached file (2026-11-19). It had to point `MARTHA_VOICE_CREDS` at the file,
 because claude.ai had added a prefix to the file's name. Martha now finds a prefixed name by
-itself; that is tested offline only. Not yet run live: `done` and `context`.
+itself; that is tested offline only. `done` has run against the live table too (2026-11-23):
+test notes were deleted, and the table then listed only the notes that remained. Not yet run
+live: `context`.
 
 The shared household (`martha_household.py`) is tested offline with two pretend computers and a
 stand-in table that refuses a save the way DynamoDB does. It has also run against a live table
