@@ -64,7 +64,8 @@ adding an entry, and never edit it.
       "cart_started": false,
       "substitutions": [],
       "feedback_collected": false,
-      "feedback_asked": false
+      "feedback_asked": false,
+      "plan_emailed": null
     }
   ],
   "loved_ingredients": [],
@@ -90,6 +91,11 @@ adding an entry, and never edit it.
   is named after it.
 - **`cart_started`** is set to true just before the first item goes into the Kroger cart for that
   week. A replan of that week must warn that the cart already holds its items.
+- **`plan_emailed`** is `null` until the week's plan email has been sent (or left as a draft,
+  where the mail connector can only draft), then that time in UTC, `"YYYY-MM-DDTHH:MM:SS"`
+  (`SKILL.md` Step 9, The plan email). It keeps the automatic email to one per week, replans
+  included; "email the plan" sends whenever asked and sets it. A week with no such field was written before the email
+  existed: never email it unless the user asks.
 - **`carried_over`** lists the ids of dinners carried from last week because they were never made
   (`[]` if none). Each is also in `dinner_ids`, so the week still lists every dinner it planned.
   A file from an earlier run may hold one id or `null` here: read it as a one-item list or none.
@@ -133,8 +139,9 @@ Compute and hold before proposing anything:
 After the hand-off:
 
 1. Write the week to `weeks[]`, replacing any entry with the same `week_of` (a cart build may
-   already have saved it), with `order_placed: false`, `plan_only` set for a plan-only week, and
-   `carried_over` listing any dinner that came from last week.
+   already have saved it), with `order_placed: false`, `plan_emailed: null` (or, on a replan, the
+   value the replaced entry had), `plan_only` set for a plan-only week, and `carried_over`
+   listing any dinner that came from last week.
 2. For each recipe in the week (normally the salad, the dinners and the breakfast): create it in
    `recipe_library[]` if it is new, with `rating: "unrated"` and `last_served: null`. A
    carried-over dinner is already there. **Do not write `last_served` or `times_served` now**:
@@ -154,14 +161,18 @@ After the hand-off:
 9. Set `last_updated` and save.
 10. Tell the user in one line what you wrote, and ask them to say when the order is placed.
 
-**When the user confirms the order was placed:** flip that week's `order_placed` to `true`, then
+**When the user confirms the order was placed** (or, with addresses in the config's email row,
+when the quiet check in `SKILL.md` Step 9 finds the store's own order confirmation, which stands
+in for the user's word): flip that week's `order_placed` to `true`, then
 set `last_served` to the week's date on every recipe in the week, and `times_served++` on each
 except the `carried_over` dinners (each was counted when the week it was first planned was
 confirmed). This is the only place `last_served` is ever written. It starts the repeat clock.
+Save, then send the plan email when `SKILL.md` Step 9's conditions hold.
 
 **If the most recent week is still `order_placed: false` at the start of a new run:** ask
 whether they placed it (Step 1). Do not assume either way: an unconfirmed week is just as likely
-to be an ordered week nobody came back to confirm.
+to be an ordered week nobody came back to confirm. (The quiet check's store confirmation is
+evidence, not an assumption.)
 
 - They placed it → do the confirm-write above, dated to that week.
 - They didn't → leave the week as `order_placed: false` and change nothing else. Because

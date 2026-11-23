@@ -22,6 +22,7 @@ The cart needs a Kroger store in the US. Kroger's API also lists its family stor
 - **Buys the right amounts.** Quantity math turns recipes into package counts, and pre-cut produce is preferred where it saves a cooking step.
 - **Optional nutrition standard.** Plans can follow the [ZOE](https://zoe.com) approach of 30 different plants a week, or a macro target, or neither.
 - **Writes the plan where you'll see it.** A plan file in your profile folder, and optionally an Apple Note. It can also read your Alexa shopping list into the cart and check off what it added.
+- **Emails the plan once you've ordered (optional).** List the household's addresses in your settings, and when you tell Martha "I ordered them" the week's plan and recipes go to everyone, from your own mailbox, through a mail connector such as Gmail. Nothing is sent for a week you didn't order.
 
 What it never does: place the order, check out, or pay. The cart is yours to review.
 

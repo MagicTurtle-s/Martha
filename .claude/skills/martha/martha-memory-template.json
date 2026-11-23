@@ -41,7 +41,8 @@
       "cart_started": false,
       "substitutions": [],
       "feedback_collected": false,
-      "feedback_asked": false
+      "feedback_asked": false,
+      "plan_emailed": null
     }
   }
 }
