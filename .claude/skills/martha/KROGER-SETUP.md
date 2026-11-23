@@ -96,10 +96,36 @@ writes the new one into the file at once. So:
 
 - Keep **one** copy of the file. If two machines each hold a copy, the first one to run makes the
   other's token stale. A profile in a cloud folder is one copy, as long as only one place runs
-  Martha at a time and the folder syncs in between (`PROFILE.md`).
+  Martha at a time and the folder syncs in between (`PROFILE.md`). A second computer that shares
+  the profile doesn't get a copy: it gets a file and a sign-in of its own (A second computer,
+  below).
 - In a Cowork session Martha commits the updated file back to your profile folder; a run that
   stops before that leaves the folder's copy stale.
 - If Martha says Kroger refused the sign-in, repeat step 4.
+
+## A second computer
+
+When two people share one profile (`PROFILE.md`, Sharing one profile), the Kroger sign-in is the
+one thing each computer keeps for itself. The second computer follows this page from the start:
+
+1. It registers its own developer app (step 1). The app is free.
+2. It gets its own `kroger-credentials.json` in its own profile folder (step 2), with that app's
+   client id and secret. The store's id and `modality` are the same as on the first computer;
+   the shared `martha-config.md` names the store, or step 3 finds it again.
+3. It signs in (step 4) with the household's kroger.com account, the shopper account the first
+   computer signed in with. Both computers then fill the same cart.
+
+Never copy `kroger-credentials.json` from one computer to the other. Kroger replaces the sign-in
+token each time it is used, so a copy goes stale as soon as either computer runs, and the one
+left holding the old token has to sign in again.
+
+What is known, and what is not:
+
+- Two computers, each with its own developer app, both signed in to one kroger.com account: this
+  is how one household runs Martha.
+- One developer app used by both computers: not tried. Make a second app.
+- Two different kroger.com accounts: each computer fills its own account's cart, so a cart one of
+  you fills is not in the other's account.
 
 ## If a step fails
 

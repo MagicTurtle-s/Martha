@@ -97,9 +97,11 @@ table; one that starts with sharing can add voice notes later.
    `bash alexa/setup/voice-key.sh computer2` (`VOICE-SETUP.md`, A second computer; on Windows, in
    Git Bash as in step 1). Carry that one file to the other computer yourself and put it in that
    computer's profile folder.
-3. On each computer, tell Martha "share our profile" (or set the Shared household row in
+3. **Give the second computer its own Kroger sign-in** (`KROGER-SETUP.md`, A second computer).
+   Without one it still plans the week and writes the shopping list; it can't fill the cart.
+4. On each computer, tell Martha "share our profile" (or set the Shared household row in
    `martha-config.md` to `on`).
-4. Start with the computer that holds the most history. Its next run saves the profile to the
+5. Start with the computer that holds the most history. Its next run saves the profile to the
    table; the other computer's next run brings it down and adds its own history to it. Recipes,
    ratings and weeks from both are kept. Where the two computers' configs differ, Martha shows
    both and asks.
@@ -111,7 +113,8 @@ The sharing-only build is tested offline only: it has not yet been run against A
 (`outputs/martha-plan-*.md`). **What never is:** any credentials file. Each computer keeps its own
 Kroger sign-in, so the rule about running from one place at a time doesn't apply here. If you
 both sign in to the same Kroger account, you fill the same cart; with two accounts, a cart one of
-you fills is not in the other's account.
+you fills is not in the other's account. `KROGER-SETUP.md`, A second computer, says how to set
+the second computer up, and never to copy the Kroger file between computers.
 
 **When you both change something.** Martha fetches the other person's changes at the start of a
 run and saves yours at the end. If you both changed things in between, different things are
