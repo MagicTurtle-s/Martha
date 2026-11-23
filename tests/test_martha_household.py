@@ -502,6 +502,26 @@ class TwoComputers(unittest.TestCase):
         self.assertEqual(m["recipe_library"][0]["rating"], "liked")
         self.assertEqual(m["last_updated"], "2026-11-23")
 
+    def test_a_plan_email_sent_from_one_computer_is_known_on_the_other(self):
+        self.in_step()
+        self.pc.edit(lambda d: d["weeks"][0].update(order_placed=True, plan_emailed="2026-12-01T22:10:00"))
+        self.laptop.edit(set_rating("fish-tacos", "liked"))        # a change of its own, so the pull merges
+        self.assertEqual(self.pc.run("push", "--note", "emailed the plan")[0], 0)
+        code, out = self.laptop.run("pull")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.laptop.memory()["weeks"][0]["plan_emailed"], "2026-12-01T22:10:00")
+        self.assertTrue(self.laptop.memory()["weeks"][0]["order_placed"])
+        self.assertEqual(self.laptop.recipe("fish-tacos")["rating"], "liked")
+        # The laptop sends it again later ("email the plan") while the PC changes something else.
+        self.assertEqual(self.laptop.run("push")[0], 0)
+        self.assertEqual(self.pc.run("pull")[0], 0)
+        self.laptop.edit(lambda d: d["weeks"][0].update(plan_emailed="2026-12-03T09:00:00"))
+        self.pc.edit(set_rating("turkey-chili", "loved"))
+        self.assertEqual(self.laptop.run("push")[0], 0)
+        code, out = self.pc.run("pull")
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.pc.memory()["weeks"][0]["plan_emailed"], "2026-12-03T09:00:00")
+
     def test_a_plan_older_than_eight_weeks_comes_only_when_asked_for(self):
         self.seed()
         self.pc.write("outputs/martha-plan-2026-01-05.md", "# An old week\n")
@@ -597,6 +617,89 @@ class MergeRules(unittest.TestCase):
         merged, conflicts = self.merge(base, mine, theirs)
         self.assertEqual(merged["weeks"][0]["dinner_ids"], ["a", "c"])
         self.assertEqual([(c["where"], c["field"]) for c in conflicts], [("the week of 2026-11-16", "dinner_ids")])
+
+    # A week's plan_emailed: null until that week's plan email is sent, then the time it went (UTC).
+
+    def emailed(self, base, mine, theirs):
+        """Merges one week whose plan_emailed is given per side; "absent" means the week has no
+        such field. Returns (the merged week, the conflicts)."""
+        def mem(value):
+            if value == "none":
+                return None  # no shared starting point: a first join
+            w = week("2026-11-30", "a", "b")
+            if value != "absent":
+                w["plan_emailed"] = value
+            return memory([], [w])
+        merged, conflicts = self.merge(mem(base), mem(mine), mem(theirs))
+        self.assertEqual(len(merged["weeks"]), 1)
+        return merged["weeks"][0], conflicts
+
+    def test_two_different_emailed_times_keep_the_later_and_nobody_is_asked(self):
+        early, late = "2026-12-01T22:10:00", "2026-12-02T08:05:30"
+        for base in (None, "absent", "none"):
+            for mine, theirs in ((early, late), (late, early)):
+                w, conflicts = self.emailed(base, mine, theirs)
+                self.assertEqual(w["plan_emailed"], late, (base, mine, theirs))
+                self.assertEqual(conflicts, [], (base, mine, theirs))
+        # One computer sent it again ("email the plan") after both had the first time.
+        w, conflicts = self.emailed(early, late, early)
+        self.assertEqual((w["plan_emailed"], conflicts), (late, []))
+
+    def test_an_emailed_time_beside_a_null_is_kept(self):
+        sent = "2026-12-01T22:10:00"
+        for base in (None, "absent", "none", sent):
+            for mine, theirs in ((sent, None), (None, sent)):
+                w, conflicts = self.emailed(base, mine, theirs)
+                self.assertEqual(w["plan_emailed"], sent, (base, mine, theirs))
+                self.assertEqual(conflicts, [], (base, mine, theirs))
+
+    def test_an_emailed_time_beside_a_week_without_the_field_is_kept(self):
+        sent = "2026-12-01T22:10:00"
+        for base in (None, "absent", "none", sent):
+            for mine, theirs in ((sent, "absent"), ("absent", sent)):
+                w, conflicts = self.emailed(base, mine, theirs)
+                self.assertEqual(w.get("plan_emailed"), sent, (base, mine, theirs))
+                self.assertEqual(conflicts, [], (base, mine, theirs))
+
+    def test_a_week_nobody_emailed_stays_unsent(self):
+        for base in (None, "none"):
+            w, conflicts = self.emailed(base, None, None)
+            self.assertIn("plan_emailed", w)
+            self.assertIsNone(w["plan_emailed"])
+            self.assertEqual(conflicts, [])
+        # Written before the email existed, on both computers: the field is not invented.
+        w, conflicts = self.emailed("absent", "absent", "absent")
+        self.assertNotIn("plan_emailed", w)
+        self.assertEqual(conflicts, [])
+        # Null on one computer, no field on the other, nothing shared before: no time appears and
+        # nobody is asked.
+        for mine, theirs in ((None, "absent"), ("absent", None)):
+            w, conflicts = self.emailed("none", mine, theirs)
+            self.assertIsNone(w.get("plan_emailed"), (mine, theirs))
+            self.assertEqual(conflicts, [], (mine, theirs))
+
+    def test_the_emailed_time_leaves_the_weeks_other_fields_alone(self):
+        base = memory([], [week("2026-11-30", "a", "b", plan_emailed=None)])
+        mine, theirs = copy.deepcopy(base), copy.deepcopy(base)
+        mine["weeks"][0].update(order_placed=True, plan_emailed="2026-12-01T22:10:00")
+        theirs["weeks"][0].update(feedback_collected=True, plan_emailed="2026-12-01T22:12:45")
+        merged, conflicts = self.merge(base, mine, theirs)
+        self.assertEqual(conflicts, [])
+        w = merged["weeks"][0]
+        expect = week("2026-11-30", "a", "b", order_placed=True, feedback_collected=True,
+                      plan_emailed="2026-12-01T22:12:45")
+        self.assertEqual(w, expect)
+        # order_placed keeps its own rule: true on one side stays true, and false on both stays false.
+        theirs["weeks"][0]["order_placed"] = False
+        self.assertTrue(self.merge(base, mine, theirs)[0]["weeks"][0]["order_placed"])
+        mine["weeks"][0]["order_placed"] = False
+        self.assertFalse(self.merge(base, mine, theirs)[0]["weeks"][0]["order_placed"])
+        # A week replanned on both sides is still asked about, emailed or not.
+        mine["weeks"][0]["dinner_ids"] = ["a", "c"]
+        theirs["weeks"][0]["dinner_ids"] = ["d", "b"]
+        merged, conflicts = self.merge(base, mine, theirs)
+        self.assertEqual([c["field"] for c in conflicts], ["dinner_ids"])
+        self.assertEqual(merged["weeks"][0]["plan_emailed"], "2026-12-01T22:12:45")
 
     def test_templates_are_never_merged_and_unknown_keys_are_kept(self):
         base = memory([], [])

@@ -59,9 +59,15 @@ _MISSING = object()
 
 # How two edits to the same field are settled without asking anyone.
 COUNTERS = {"times_served", "times"}                                   # both counted: add both
-LATER = {"last_served", "last_said", "last_updated", "pinterest_last_pull"}  # the later date wins
+LATER = {"last_served", "last_said", "last_updated", "pinterest_last_pull",
+         "plan_emailed"}                                               # the later date wins
 EARLIER = {"first_seen", "added"}                                      # the earlier date wins
 STICKY = {"order_placed", "cart_started", "feedback_collected", "feedback_asked"}  # once true, true
+# A time recorded here is never cleared by a merge. A week's plan_emailed is null until that week's
+# plan email goes out, then the time it went; Martha never sets it back to null. So a null, or a
+# week entry with no such field, beside a time is the older copy, and losing the time could send
+# the household the same email twice.
+KEPT_TIMES = {"plan_emailed"}
 SET_LISTS = {"plants", "key_ingredients", "tags", "substitutions"}     # lists merged entry by entry
 TOP_LISTS = ("loved_ingredients", "disliked_ingredients", "pending_items", "alexa_list_seen",
              "adult_snacks_recent", "notes")
@@ -372,6 +378,8 @@ def _merge_dict(base, mine, theirs, label, conflicts):
         m, t, b = mine.get(k, _MISSING), theirs.get(k, _MISSING), base.get(k, _MISSING)
         if m is not _MISSING and t is not _MISSING and m == t:
             v = m
+        elif k in KEPT_TIMES and any(isinstance(x, str) and x for x in (m, t)):
+            v = _date_pick(m, t, later=True)   # a time outlives a null or a missing field; of two, the later
         elif b is not _MISSING and m is not _MISSING and m == b:
             v = t   # only the other side changed it (or removed it)
         elif b is not _MISSING and t is not _MISSING and t == b:
