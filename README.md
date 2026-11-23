@@ -22,7 +22,7 @@ The cart needs a Kroger store in the US. Kroger's API also lists its family stor
 - **Buys the right amounts.** Quantity math turns recipes into package counts, and pre-cut produce is preferred where it saves a cooking step.
 - **Optional nutrition standard.** Plans can follow the [ZOE](https://zoe.com) approach of 30 different plants a week, or a macro target, or neither.
 - **Writes the plan where you'll see it.** A plan file in your profile folder, and optionally an Apple Note. It can also read your Alexa shopping list into the cart and check off what it added.
-- **Takes notes by voice (optional).** Through an Alexa skill of your own, anyone in the house can say "Alexa, tell Martha Meal we're out of cumin" or "Alexa, tell Martha Meal Sam loved the chili"; the notes wait in your own AWS account, and the next run shows each one and files it. Setup: [VOICE-SETUP.md](.claude/skills/martha/VOICE-SETUP.md).
+- **Takes notes by voice (optional).** Through an Alexa skill of your own, anyone in the house can say "Alexa, ask Martha Meals to note that we're out of cumin" or "Alexa, ask Martha Meals to note that Sam loved the chili"; the notes wait in your own AWS account, and the next run shows each one and files it. Setup: [VOICE-SETUP.md](.claude/skills/martha/VOICE-SETUP.md).
 
 What it never does: place the order, check out, or pay. The cart is yours to review.
 
@@ -67,7 +67,7 @@ The profile is on this computer only (`~/.martha`), or in a cloud folder that yo
   PINTEREST-SETUP.md       optional Pinterest setup
   VOICE-SETUP.md           optional voice notes through Alexa
   PROFILE.md               where your household's profile lives
-alexa/                     optional voice notes: the Martha Meal skill, its AWS pieces, the setup script
+alexa/                     optional voice notes: the Martha Meals skill, its AWS pieces, the setup script
   skill-package/           the skill's name and the words it listens for
   lambda/                  the skill's back end (Node.js): Claude's read-back, saving the note
   infra/martha-voice.yaml  the AWS pieces: notes table, back end, this computer's key user, budget alert

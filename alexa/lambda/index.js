@@ -1,5 +1,5 @@
 'use strict';
-// Lambda entry point for the Martha Meal skill (Node.js 22).
+// Lambda entry point for the Martha Meals skill (Node.js 22).
 // Environment (set by alexa/infra/martha-voice.yaml): TABLE_NAME, SKILL_ID, KEY_PARAMETER (the SSM
 // SecureString holding the Anthropic API key), MODEL (optional).
 const { randomUUID } = require('node:crypto');

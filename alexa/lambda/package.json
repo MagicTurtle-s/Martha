@@ -2,7 +2,7 @@
   "name": "martha-meal-skill",
   "version": "1.0.0",
   "private": true,
-  "description": "Back end of the Martha Meal Alexa skill: takes a household's voice notes, reads them back through Claude, and saves them for the next Martha run.",
+  "description": "Back end of the Martha Meals Alexa skill: takes a household's voice notes, reads them back through Claude, and saves them for the next Martha run.",
   "main": "index.js",
   "license": "MIT",
   "engines": {

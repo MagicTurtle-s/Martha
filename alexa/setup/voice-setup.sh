@@ -195,7 +195,7 @@ finish() {
 # ──────────────────────────────────────────────────────────────────────────
 # STAGES: Martha voice notes, the AWS side (.claude/skills/martha/VOICE-SETUP.md steps 2-6).
 # Run in Git Bash on Windows, or a terminal on macOS or Linux, from anywhere:
-#   bash alexa/setup/voice-setup.sh <the Martha Meal skill id>
+#   bash alexa/setup/voice-setup.sh <the Martha Meals skill id>
 # Safe to re-run: each stage checks or replaces what an earlier run made.
 # ──────────────────────────────────────────────────────────────────────────
 
@@ -293,7 +293,7 @@ stage "Build the voice-notes pieces in AWS"
 say "The notes table, the skill's back end, a narrow key user for this computer,"
 say "and a \$1 monthly budget alert."
 SKILL_ID="${1:-}"
-[[ -n "$SKILL_ID" ]] || ask SKILL_ID "The Martha Meal skill id (amzn1.ask.skill...):"
+[[ -n "$SKILL_ID" ]] || ask SKILL_ID "The Martha Meals skill id (amzn1.ask.skill...):"
 [[ "$SKILL_ID" =~ ^amzn1\.ask\.skill\.[0-9a-f-]+$ ]] || { warn "That isn't a skill id (VOICE-SETUP.md step 1)."; exit 1; }
 write_env SKILL_ID "$SKILL_ID"
 ask BUDGET_EMAIL "Email for the budget alert (AWS writes only if a month costs over \$1):"
@@ -395,11 +395,11 @@ for _ in $(seq 1 30); do
 done
 [[ "$s" == "SUCCEEDED" ]] || { warn "Alexa didn't accept the connection (status: ${s:-unknown}). Run this again."; exit 1; }
 "$ASK" smapi set-skill-enablement --skill-id "$SKILL_ID" --stage development >/dev/null 2>&1 || true
-say "Connected. Alexa now sends Martha Meal's notes to your AWS account."
+say "Connected. Alexa now sends Martha Meals' notes to your AWS account."
 pause
 
 finish
-say "Try it: \"Alexa, tell Martha Meal we're out of ground cumin.\""
+say "Try it: \"Alexa, ask Martha Meals to note that we're out of ground cumin.\""
 say "Then, from the Martha folder: python .claude/skills/martha/scripts/martha_voice.py notes"
 say "Last step: turn voice notes on for Martha (VOICE-SETUP.md step 7)."
 printf '\n'

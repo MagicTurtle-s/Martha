@@ -1,5 +1,5 @@
 'use strict';
-// Offline tests for the Martha Meal skill: fake Claude, fake notes table, fixed clock and ids.
+// Offline tests for the Martha Meals skill: fake Claude, fake notes table, fixed clock and ids.
 // Run: node --test alexa/lambda
 const test = require('node:test');
 const assert = require('node:assert/strict');

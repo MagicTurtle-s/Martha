@@ -1,7 +1,7 @@
 {
   "interactionModel": {
     "languageModel": {
-      "invocationName": "martha meal",
+      "invocationName": "martha meals",
       "intents": [
         { "name": "AMAZON.CancelIntent", "samples": [] },
         { "name": "AMAZON.HelpIntent", "samples": [] },
