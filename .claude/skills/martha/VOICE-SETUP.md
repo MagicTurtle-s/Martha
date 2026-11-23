@@ -1,17 +1,21 @@
 # Voice notes setup (optional)
 
 With voice notes, anyone in the house can tell Martha things between runs, through an Alexa skill
-of your own called "Martha Meal":
+of your own called "Martha Meals":
 
-- "Alexa, tell Martha Meal we're out of ground cumin."
-- "Alexa, tell Martha Meal Sam really liked the chili tonight."
-- "Alexa, use Martha Meal to note that we'd like more sheet-pan dinners."
-- Or "Alexa, open Martha Meal", and say the note when it asks.
+- "Alexa, ask Martha Meals to note that we're out of ground cumin."
+- "Alexa, ask Martha Meals to note that Sam really liked the chili tonight."
+- "Alexa, use Martha Meals to note that we'd like more sheet-pan dinners."
 
-Keep the name singular. In testing on Alexa+ (2026-11-16), "tell Martha Meals ..." was taken as
-a text message to a contact called Martha Meals, while "tell Martha Meal ..." and "use Martha
-Meal to ..." reached the skill. If "tell" ever starts a message instead, say "use Martha Meal
-to ...".
+Say the whole note in one go, starting "ask Martha Meals to note that ...". What testing on Alexa+
+showed:
+
+- A skill has one name, and Alexa wants it as spoken. The skill was first called "Martha Meal";
+  people said "Meals", and those notes never arrived. Use the name your household says.
+- "Alexa, open Martha Meals" was refused on a phone (2026-11-23: "that is not supported on this
+  device"), so don't rely on opening the skill first.
+- "Alexa, tell Martha Meals ..." was once taken as a text message to a contact (2026-11-16). If
+  "tell" does that, say "ask Martha Meals to note that ...".
 
 Alexa says back what it understood. The note waits in a small table in your own AWS account until
 the next Martha run, which shows every note with how it was filed (a rating, this week's shopping
@@ -27,7 +31,7 @@ Linux type `python3`.
 that's ever wrong), and about 15 cents a month of Anthropic API use for the read-back at ten
 notes a day.
 
-## 1. Make the Alexa skill "Martha Meal"
+## 1. Make the Alexa skill "Martha Meals"
 
 The skill is private to your household: it is never published, so only devices on your Amazon
 account can use it.
@@ -78,7 +82,7 @@ account can use it.
    | 3. Build | Makes the notes table, the skill's back end, a key user for this computer that can only read and delete notes and write the week's context record, and a $1 monthly budget alert to the email you give (`alexa/infra/martha-voice.yaml`). |
    | 4. Anthropic key | Step 4 below. |
    | 5. This computer's key | Makes the computer's key and saves it straight into `voice-credentials.json` (step 6) without showing it. |
-   | 6. Connect | Uploads the skill's code and points the Martha Meal skill at it (step 3). |
+   | 6. Connect | Uploads the skill's code and points the Martha Meals skill at it (step 3). |
 
 ## 3. What "connect" did
 
@@ -99,7 +103,7 @@ again; at the other stages, press Enter to keep what is there.
 
 ## 5. Leave a first note
 
-Say: "Alexa, tell Martha Meal we're out of ground cumin." Alexa answers with what she
+Say: "Alexa, ask Martha Meals to note that we're out of ground cumin." Alexa answers with what she
 understood, such as "Got it: ground cumin goes on next week's list." Then check that it arrived:
 
 ```
@@ -110,7 +114,8 @@ python .claude/skills/martha/scripts/martha_voice.py notes
 |---|---|
 | What she understood | Everything works. |
 | "Got it, I'll pass on: ..." | The note is saved, but the read-back isn't working: re-run the script and redo stage 4. |
-| She starts a text message | Say "Alexa, use Martha Meal to ..." instead (see the top of this page). |
+| She starts a text message | Say "Alexa, ask Martha Meals to note that ..." instead (see the top of this page). |
+| "Sorry, that is not supported on this device" | That device won't open the skill by itself: say the whole note in one go, "Alexa, ask Martha Meals to note that ...". |
 | "There was a problem with the requested skill's response" | The skill and the back end aren't connected: re-run the script. |
 
 ## 6. Give this computer its key

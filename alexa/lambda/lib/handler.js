@@ -1,5 +1,5 @@
 'use strict';
-// Alexa request handling for Martha Meal. Everything outside (Claude, the notes table, the clock,
+// Alexa request handling for Martha Meals. Everything outside (Claude, the notes table, the clock,
 // ids) comes in through deps, so the tests can run without AWS or Anthropic.
 const Alexa = require('ask-sdk-core');
 const { interpretNote } = require('./interpret');
@@ -10,7 +10,7 @@ const HELP = "Tell me how a meal went, what you're out of, or what you'd like mo
 
 const escape = (s) => String(s).replace(/&/g, 'and').replace(/[<>]/g, ' ');
 
-// Words Alexa can leave at the front of the note ("use Martha Meal to say ...", "tell Martha Meal skill ...").
+// Words Alexa can leave at the front of the note ("use Martha Meals to say ...", "tell Martha Meals skill ...").
 function cleanWords(raw) {
   return String(raw || '')
     .trim()
