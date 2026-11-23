@@ -1,0 +1,90 @@
+<!doctype html>
+<!--
+  Martha's weekly recipe page. Copy this file to outputs/martha-recipes-YYYY-MM-DD.html in the
+  profile folder, keep the <style> block exactly as it is, replace the text, and leave this
+  note out. The date in the line under the title is the day the page was written.
+  - One <section class="recipe"> per recipe, in the plan's order.
+  - The file must stand alone: no scripts, no outside fonts or images, nothing fetched on open.
+  - It prints with the prep plan on the first page and each recipe starting a new page.
+  What each style is for: h1 names the week; h2 names the prep plan or a recipe (the top of a
+  printed page); h3 labels a part of a recipe; .meta is the line of facts under a name;
+  <strong> marks whose line it is; .source is the credit.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recipes for the week of M/D</title>
+<style>
+  :root { --ink: #1b1b1b; --muted: #555555; --rule: #cfcfcf; --paper: #ffffff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink);
+         font: 17px/1.5 Georgia, "Times New Roman", serif; }
+  main { max-width: 44rem; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
+  h1 { font-size: 1.7rem; line-height: 1.2; margin: 0 0 0.25rem; }
+  h2 { font-size: 1.35rem; line-height: 1.25; margin: 0 0 0.25rem; }
+  h3 { font-size: 1rem; margin: 1.1rem 0 0.3rem; }
+  .meta { color: var(--muted); font-size: 0.95rem; margin: 0 0 0.75rem; }
+  section { border-top: 1px solid var(--rule); padding-top: 1.25rem; margin-top: 1.5rem; }
+  ul, ol { margin: 0.2rem 0 0.2rem 1.25rem; padding: 0; }
+  li { margin: 0.25rem 0; }
+  p { margin: 0.3rem 0; }
+  .source { color: var(--muted); font-size: 0.9rem; margin-top: 1rem; }
+  a { color: inherit; }
+  @media print {
+    @page { margin: 0.6in; }
+    body { font-size: 12pt; }
+    main { max-width: none; padding: 0; }
+    section { border-top: 0; margin-top: 0; padding-top: 0; }
+    .recipe { break-before: page; page-break-before: always; }
+    h2, h3 { break-after: avoid; page-break-after: avoid; }
+    li { break-inside: avoid; page-break-inside: avoid; }
+    .source a::after { content: " (" attr(href) ")"; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Recipes for the week of M/D</h1>
+    <p class="meta">5 recipes · written by Martha on YYYY-MM-DD</p>
+  </header>
+
+  <section class="prep">
+    <h2>Prep plan</h2>
+    <ol>
+      <li>The first make-ahead step, in the order to do it.</li>
+      <li>The next one.</li>
+    </ol>
+  </section>
+
+  <section class="recipe">
+    <h2>Recipe name</h2>
+    <p class="meta">Dinner · makes 2 batches: two dinners · 25 minutes of work</p>
+
+    <h3>Ingredients</h3>
+    <ul>
+      <li>Amount and ingredient, scaled to this week's batch, as bought.</li>
+      <li>A swap is already made here: olive oil, in place of the recipe's butter.</li>
+    </ul>
+
+    <h3>Steps</h3>
+    <ol>
+      <li>A short step in Martha's own words, with the time and temperature.</li>
+      <li>The next step.</li>
+    </ol>
+
+    <h3>For each person</h3>
+    <ul>
+      <li><strong>Name:</strong> what is different on their plate.</li>
+    </ul>
+
+    <h3>Keeps</h3>
+    <p>How long it keeps, where, and how to reheat it.</p>
+
+    <p class="source">Adapted from <a href="https://example.com/recipe">the site or author's name</a>.
+      The steps are in Martha's words.</p>
+  </section>
+</main>
+</body>
+</html>

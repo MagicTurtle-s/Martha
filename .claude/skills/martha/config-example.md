@@ -115,6 +115,7 @@ Loved products (Martha buys this exact item; the UPCs here are made up):
 | Setting | Value |
 |---|---|
 | Plan file (always) | `outputs/martha-plan-YYYY-MM-DD.md` in the profile folder |
+| Recipe page (always) | `outputs/martha-recipes-YYYY-MM-DD.html` in the profile folder; opens in any browser and prints one recipe per page |
 | Apple Note link (optional; needs Claude in Chrome) | |
 | Alexa list name (optional; Martha reads it into the cart and checks off what it added; needs Claude in Chrome) | Shopping |
 | Email the week's plan to (optional; addresses, comma-separated; sent once the order is placed; needs a mail connector such as Gmail, where Martha also looks for the store's order confirmation) | alex@example.com, sam@example.com |

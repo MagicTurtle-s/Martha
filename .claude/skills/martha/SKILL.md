@@ -20,6 +20,7 @@ household places the order.
 | `kroger-credentials.json` | The household's Kroger API app and sign-in token. Lives in the profile folder. Setup: `KROGER-SETUP.md`. Without it Martha runs plan-only. |
 | `pinterest-credentials.json` | Optional, for a Pinterest recipe board. Setup: `PINTEREST-SETUP.md`. |
 | `config-example.md` | The config's structure, filled in for a made-up household. |
+| `recipe-page-template.html` | The starting file for the weekly recipe page (Step 9): its layout and print rules. |
 | `PROFILE.md` | For the user: where the profile can live, how to move it, back it up or keep it in git. |
 | `QUANTITY-MATH.md` | Scaling, standing-order rules, budget arithmetic, ranked cuts. Read it before Step 5. |
 | `PREPPED-FIRST.md` | Buy the vegetable already cut. |
@@ -187,13 +188,17 @@ leave that setting blank (blank switches an optional feature off).
 **4. Recipes and outputs**
 12. Where do recipe ideas come from: a Pinterest board (its name), sites you trust, or links you
     send me (default: links you send, and web search)?
-13. Every week you get a plan file. Martha can also copy the plan into an Apple Note (send its
+13. Every week you get a plan file and a recipe page you can print. Martha can also copy the plan
+    into an Apple Note (send its
     link), and read your Alexa shopping list (its name): those items go into the Kroger cart and
     are checked off in Alexa. Both need the Claude in Chrome extension (default: neither).
     Martha can also email the plan to the people you name once you've ordered (needs a mail
     connector such as Gmail; default: nobody). Say that she then also looks in the mailbox for
     the store's order confirmation, and nothing else there, so the email can go without being
-    told. Ask this as a typed follow-up to the pop-up, and take the addresses as typed.
+    told. That only works if the store's emails arrive in that mailbox; otherwise "I ordered
+    them" does it. Ask this as a typed follow-up to the pop-up, and take the addresses as typed.
+    If addresses are given and this session has no mail connector, say so now and how to add
+    one (Step 9, The plan email).
 14. Who clips digital coupons in the Kroger app? (Martha never clips them; it can remind you.
     Default: no reminder.)
 
@@ -372,8 +377,8 @@ week's `week_of` (Step 1). Re-running the same week overwrites it.
   it differs (the member's name from the config, then "chicken and sweet potato, pulled before
   the sauce"), and the scaling
   ("make 2x, eaten as 2 dinners", "1.5x batch = 10 lunch servings", key amounts in prepped forms: "4 tsp
-  jarred minced garlic"). One short line each. The household cooks from the linked page, so no
-  full ingredient lists or steps.
+  jarred minced garlic"). One short line each. No full ingredient lists or steps here: those go
+  in the recipe page (Step 9).
 - A recipe with no source URL (built from scratch) gets no link; put its short method in bullets.
 - **Prep last:** the make-ahead plan (breakfast bake, salad batch, chopping or marinating that
   saves time on dinner nights), one-line bullets in order. With `zoe`, end it with one line: eat
@@ -385,7 +390,7 @@ week's `week_of` (Step 1). Re-running the same week overwrites it.
 four labels, the recipes and Prep; no shopping list) as `BROWSER-PLAYBOOK.md` describes.
 
 Any change after this step (a Step 8 substitution, a budget cut, a swap the user asks for)
-updates the plan file and the note; say so. If the note couldn't be updated (signed out, browser
+updates the plan file, the note and, once it exists, the recipe page (Step 9); say so. If the note couldn't be updated (signed out, browser
 unavailable), offer to update it once the user signs in.
 
 ## Step 7 — The Alexa list (only when the config names one)
@@ -443,6 +448,52 @@ not, budget cuts, assumed-on-hand items, items not label-checked, and the plant 
 In chat: three or four lines, not the table. If the config says the household clips coupons, end
 with: "Clip the digital coupons in the Kroger app before you order."
 
+### The recipe page (every week)
+
+The plan file stays short. The cooking detail goes in one page the household can read on a
+phone or print: `outputs/martha-recipes-YYYY-MM-DD.html` in the profile folder, named after the
+week like the plan file. Make it at hand-off, once the cart or shopping list is settled, in cart
+weeks and plan-only weeks alike. A replan, or any later swap, remakes it.
+
+Start from `recipe-page-template.html` in this skill's folder: keep its `<style>` block as it is
+and replace the text. The file must stand alone: no scripts, no outside fonts or images, nothing
+fetched when it opens. It prints with the prep plan on the first page and each recipe starting a
+new page.
+
+In this order:
+
+1. **The prep plan**, the plan file's Prep as it stands after shopping: drop a step the cart made
+   unnecessary (nothing to slice when the pre-cut bag was bought), in the plan file too.
+2. **Each recipe**, in the plan's order (breakfast, lunch, dinners; a carried-over dinner too):
+   - its name, and one line of facts: the slot, the batch ("makes 2 batches: two dinners") and
+     the minutes of work;
+   - **ingredients scaled to this week's batch**, as bought, with every swap already made (olive
+     oil where the recipe says butter, the gluten-free pasta that went in the cart), so nobody
+     does arithmetic or remembers a swap at the stove. Give amounts a kitchen can measure: whole
+     eggs, ordinary spoons and cups ("1/4 cup plus 2 tbsp", never "3/8 cup" or "1 1/2 eggs").
+     Round to the nearest such amount, and say so in the step where the rounding could matter;
+   - **steps, short, in Martha's own words.** Never copy a site's wording: write what to do from
+     having read the recipe, keeping its times and temperatures, with the pin notes and the
+     household's appliances folded in. Where this week's batch or pan changes the timing, keep
+     the recipe's time, say it was written for the smaller batch, and give the sign to cook to
+     ("set in the middle", "165 F inside") instead of making up a new time;
+   - **for each person** whose plate differs (a child's portion, less heat, something left off):
+     one line, with their name from the config. Leave the part out when everyone eats the dish
+     as written; a swap already made for the whole dish needs no line;
+   - **keeps:** how long it keeps, where, and how to reheat it;
+   - **credit:** the source's name, linked to the original page.
+3. Nothing else: no cart, no prices, no pictures.
+
+A recipe whose page could not be read (Step 2) still gets its section: the name, the link, the
+plan's bullets, and one line saying the steps are on the original page. Never invent ingredients
+or steps. A recipe built from scratch has no credit line.
+
+Add one line to the plan file under its title, "Recipes: `martha-recipes-YYYY-MM-DD.html`, in
+this folder", and tell the user where the page is (in Cowork, commit it into `outputs/` and share
+it with `SendUserFile`, like the plan). The HTML file is the printable version: open it and
+print, or save it as a PDF from the print dialog. Where the config's Notes ask for a PDF or a
+published page as well, and the session can make one, do that too and name it.
+
 ### The plan email (only when the config lists addresses)
 
 The Outputs row "Email the week's plan to" holds the household's addresses. Filling it in is the
@@ -477,7 +528,8 @@ answering. It looks at the latest week, and only if the row has addresses, that 
   whose subject says an order was placed or confirmed. A cart reminder, an ad, or a receipt from
   a trip to the store is not one. Found: the store's own confirmation stands in for the user's word, so do the
   confirm-write and send without asking. Not found, not sure, or no way to search: say nothing
-  and change nothing.
+  and change nothing. The store's emails must arrive in the mailbox the connector reads; when
+  they go to another address this finds nothing, and "I ordered them" is the way.
 
 **What it is.** One message to every address in the row, from the mailbox of whoever is running
 Martha:
@@ -485,9 +537,9 @@ Martha:
 - Subject: "Meals for the week of <M/D>".
 - Body, short and plain: each meal under its slot with its recipe link, then the prep plan. The
   cart table and prices stay out of the body; they are in the attached plan file.
-- Attached: the plan file as it is, and any recipe file the run saved for that week in
-  `outputs/` (the config's Notes may ask for one). A link to a page only the sender can open is
-  no use to the others: attach the file. If the connector can't attach, put the plan's meals and
+- Attached: the plan file as it is and the week's recipe page
+  (`outputs/martha-recipes-YYYY-MM-DD.html`), plus a PDF of it if the run saved one. A link to
+  a page only the sender can open is no use to the others: attach the files. If the connector can't attach, put the plan's meals and
   prep in the body and say which files could not be attached and where they are.
 
 **How.** Use the session's mail connector (Gmail, Outlook or another) and its send tool. If it
@@ -498,7 +550,10 @@ and save memory. Say in one line who it went to and why now, truthfully for what
 I emailed the plan to …"; "You'd confirmed the order earlier, so I emailed the plan to …";
 "The plan email for … is waiting in your Drafts." If the session has no mail connector, say
 so in one line, name the files, and leave `plan_emailed` as `null`: the quiet check sends it
-from the next session that has one.
+from the next session that has one. Tell them how to add one: in Claude's settings, under
+connectors, connect their mail (Gmail, or Microsoft 365 for Outlook) and sign in there. Claude
+Code and Cowork use the connectors of the Claude account they are signed in with. Martha never
+sees or asks for the mail password.
 
 **"Email the plan"** is the one exception to the conditions above: it sends the latest week's
 email now, once, ordered or not, sent before or not, week over or not, because the user asked.
@@ -646,6 +701,8 @@ must be public. Store
   exception).
 - If you cannot verify a price, say so rather than estimating and calling it a price. Never
   substitute silently.
+- The recipe page's steps are Martha's own words. Never copy a recipe site's text, and never
+  invent the steps of a recipe that could not be read.
 - Coupons are the household's: never clip them, never open a browser for them; one reminder line
   at hand-off when the config asks for it.
 - Never use the browser for Kroger. In Cowork, one folder-access request per run. Never ask
