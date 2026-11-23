@@ -68,12 +68,23 @@ account can use it.
 2. **The AWS command-line tool.** On Windows: `winget install Amazon.AWSCLI`. On a Mac or Linux,
    AWS's installer from [aws.amazon.com/cli](https://aws.amazon.com/cli/).
 3. **The setup script.** It walks you through the rest in six short stages, and is safe to re-run.
-   On Windows, run it in Git Bash (or `"C:\Program Files\Git\bin\bash.exe"` from PowerShell); on a
-   Mac or Linux, in Terminal:
+   On a Mac or Linux, type it in Terminal. On Windows, type it in Git Bash, which comes with Git
+   for Windows:
 
    ```
    bash alexa/setup/voice-setup.sh <skill id>
    ```
+
+   **Windows, from PowerShell.** A bare `bash` there starts a different program (the Windows
+   Subsystem for Linux), not Git's. Put Git's own bash in front instead:
+
+   ```
+   & "C:\Program Files\Git\bin\bash.exe" alexa/setup/voice-setup.sh <skill id>
+   ```
+
+   The same goes for every `bash alexa/setup/...` command on this page and in `PROFILE.md`: in
+   Git Bash type it as written; in PowerShell replace the word `bash` with
+   `& "C:\Program Files\Git\bin\bash.exe"`. If Git is installed somewhere else, use that folder.
 
    | Stage | What happens |
    |---|---|
@@ -178,7 +189,8 @@ does for Kroger. Martha never prints the file.
 ### A new key for this computer
 
 When the key file is lost or broken (`check` says the key is wrong), the script makes a fresh key
-and replaces the file in place, with no console clicking:
+and replaces the file in place, with no console clicking (on Windows: in Git Bash, or the
+PowerShell form in step 2, part 3):
 
 ```
 bash alexa/setup/voice-key.sh computer
@@ -195,7 +207,7 @@ the computer's older key, which nothing here can use any more.
 When two people each run Martha on their own computer, both computers can work from one profile
 kept in this same table (`PROFILE.md`, Sharing one profile). The second computer gets its own
 key, so either one can be cancelled without touching the other. Run, on the computer that did
-the setup:
+the setup (on Windows: in Git Bash, or the PowerShell form in step 2, part 3):
 
 ```
 bash alexa/setup/voice-key.sh computer2
@@ -222,7 +234,7 @@ IAM > Users > `martha-voice-pc-2` > Security credentials > Deactivate (or Delete
 The computer's key stays on the computer. For a phone, make a second key that can **only
 read**: the waiting notes and, when the household shares one profile, that profile. It can't
 delete a note, file one or save anything, and cancelling it doesn't touch the computer's key.
-Run, on the computer:
+Run, on the computer (on Windows: in Git Bash, or the PowerShell form in step 2, part 3):
 
 ```
 bash alexa/setup/voice-key.sh phone
