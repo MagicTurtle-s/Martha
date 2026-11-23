@@ -2,7 +2,8 @@
 and the weekly plan files) kept in the household's own DynamoDB table, so two computers and a phone
 work from the same preferences and history. Standard library only (Python 3.9+).
 
-It rides on the voice-notes build (VOICE-SETUP.md): the same table, the same key file
+It uses the build VOICE-SETUP.md describes, made with the Alexa skill or without it
+(voice-setup.sh --sharing-only): the same table voice notes use, the same key file
 (voice-credentials.json), and martha_voice.py's request signing. Nothing here deletes anything in
 the table, and a sign-in file is never read or sent.
 

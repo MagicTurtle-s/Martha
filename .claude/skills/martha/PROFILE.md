@@ -9,7 +9,7 @@ goes into the Martha repository.
 | `martha-memory.json` | Every recipe Martha has planned, your ratings and past weeks. |
 | `kroger-credentials.json` | Your Kroger app and sign-in token (`KROGER-SETUP.md`). A secret. |
 | `pinterest-credentials.json` | Optional (`PINTEREST-SETUP.md`). |
-| `voice-credentials.json` | Optional: this computer's AWS key for voice notes (`VOICE-SETUP.md`). A secret. |
+| `voice-credentials.json` | Optional: this computer's AWS key for voice notes, a shared profile (below), or both (`VOICE-SETUP.md`). A secret. |
 | `outputs/` | The weekly plans, one file per week. |
 | `.household/` | Only when two people share the profile (below): what this computer last synced. |
 
@@ -74,18 +74,38 @@ Two people who each run Martha on their own computer can work from one profile: 
 preferences, one history of recipes, ratings and weeks, one set of plans. Whatever one of you
 changes, the other's next run starts from.
 
-It needs the voice-notes build (`VOICE-SETUP.md`): the shared copy lives in the same small table
-in your own AWS account, and each computer gets its own key to it.
+It needs one small table in your own AWS account: the shared copy lives there, and each computer
+gets its own key to it. The setup script in `VOICE-SETUP.md` builds it, and in its sharing-only
+form it builds nothing else: no Alexa skill, no Amazon developer account, no Anthropic API key.
+Voice notes are optional and separate. A household that already has voice notes already has the
+table; one that starts with sharing can add voice notes later.
 
-1. On the computer that ran the voice setup, make the second computer's key:
-   `bash alexa/setup/voice-key.sh computer2` (`VOICE-SETUP.md`, A second computer). Carry that one
-   file to the other computer yourself and put it in that computer's profile folder.
-2. On each computer, tell Martha "share our profile" (or set the Shared household row in
+1. **Build the table.** Skip this step if the household already set up voice notes. Otherwise,
+   on the computer that holds the most history: make the AWS account and install the AWS
+   command-line tool (`VOICE-SETUP.md` step 2, parts 1 and 2), then run this from the folder you
+   cloned Martha into:
+
+   ```
+   bash alexa/setup/voice-setup.sh --sharing-only
+   ```
+
+   On Windows, type it in Git Bash, not PowerShell; `VOICE-SETUP.md` step 2 gives the form that
+   works from PowerShell. The script signs this computer in to AWS, builds the table, a key user
+   for each computer and for a phone, and a $1 monthly budget alert, and saves this computer's
+   key. `VOICE-SETUP.md`, Only sharing a profile, says which of that page's steps apply.
+2. **Make the second computer's key.** On the computer that ran the setup script:
+   `bash alexa/setup/voice-key.sh computer2` (`VOICE-SETUP.md`, A second computer; on Windows, in
+   Git Bash as in step 1). Carry that one file to the other computer yourself and put it in that
+   computer's profile folder.
+3. On each computer, tell Martha "share our profile" (or set the Shared household row in
    `martha-config.md` to `on`).
-3. Start with the computer that holds the most history. Its next run saves the profile to the
+4. Start with the computer that holds the most history. Its next run saves the profile to the
    table; the other computer's next run brings it down and adds its own history to it. Recipes,
    ratings and weeks from both are kept. Where the two computers' configs differ, Martha shows
    both and asks.
+
+The sharing-only build is tested offline only: it has not yet been run against AWS
+(`VOICE-SETUP.md`, Not yet tested, says what has).
 
 **What is shared:** `martha-config.md`, `martha-memory.json` and the weekly plan files
 (`outputs/martha-plan-*.md`). **What never is:** any credentials file. Each computer keeps its own

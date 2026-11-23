@@ -2,14 +2,18 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: >-
   Martha voice notes: a small notes table, the Martha Meals skill's back end, narrow key users for
   the household's computers and a phone, and a monthly budget alert. The same table can hold one
-  shared copy of the household's profile (PROFILE.md, Sharing one profile). Everything here stays
+  shared copy of the household's profile (PROFILE.md, Sharing one profile). Without a skill id the
+  back end is left out, and what remains is what sharing a profile needs. Everything here stays
   inside the AWS free tier at household volume. Guide: .claude/skills/martha/VOICE-SETUP.md.
 
 Parameters:
   AlexaSkillId:
     Type: String
-    AllowedPattern: '^amzn1\.ask\.skill\.[0-9a-f-]+$'
-    Description: The Martha Meals skill's id from the Alexa developer console.
+    Default: ''
+    AllowedPattern: '^(amzn1\.ask\.skill\.[0-9a-f-]+)?$'
+    Description: >-
+      The Martha Meals skill's id from the Alexa developer console. Leave it empty to build only
+      what sharing a profile needs: the table, the key users and the budget alert, with no back end.
   BudgetEmail:
     Type: String
     AllowedPattern: '^[^@\s]+@[^@\s]+\.[^@\s]+$'
@@ -21,6 +25,11 @@ Parameters:
     Type: String
     Default: /martha-voice/anthropic-api-key
     Description: The Parameter Store name that holds the Anthropic API key (a SecureString the setup writes).
+
+Conditions:
+  # True when a skill id was given. Everything that exists only for the Alexa skill carries this
+  # condition; the table, the key users and the budget alert never do.
+  HasAlexaSkill: !Not [!Equals [!Ref AlexaSkillId, '']]
 
 Resources:
   NotesTable:
@@ -45,6 +54,7 @@ Resources:
   # The skill's back end may only add notes, read the week's context, and read its Anthropic key.
   SkillRole:
     Type: AWS::IAM::Role
+    Condition: HasAlexaSkill
     Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -88,6 +98,7 @@ Resources:
 
   SkillFunction:
     Type: AWS::Lambda::Function
+    Condition: HasAlexaSkill
     Properties:
       FunctionName: martha-meal-skill
       Description: Martha Meals skill back end (code is uploaded by the setup, alexa/lambda).
@@ -110,6 +121,7 @@ Resources:
 
   AlexaInvoke:
     Type: AWS::Lambda::Permission
+    Condition: HasAlexaSkill
     Properties:
       Action: lambda:InvokeFunction
       FunctionName: !GetAtt SkillFunction.Arn
@@ -256,6 +268,7 @@ Resources:
 
 Outputs:
   FunctionArn:
+    Condition: HasAlexaSkill
     Value: !GetAtt SkillFunction.Arn
   TableName:
     Value: !Ref NotesTable
@@ -266,4 +279,5 @@ Outputs:
   PhoneUserName:
     Value: !Ref PhoneUser
   KeyParameter:
+    Condition: HasAlexaSkill
     Value: !Ref KeyParameter

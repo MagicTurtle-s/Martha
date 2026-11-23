@@ -196,8 +196,33 @@ finish() {
 # STAGES: Martha voice notes, the AWS side (.claude/skills/martha/VOICE-SETUP.md steps 2-6).
 # Run in Git Bash on Windows, or a terminal on macOS or Linux, from anywhere:
 #   bash alexa/setup/voice-setup.sh <the Martha Meals skill id>
+#   bash alexa/setup/voice-setup.sh --sharing-only
+# The second form is for a household that only shares one profile between two computers
+# (PROFILE.md, Sharing one profile) and has no Alexa skill: it builds the table, the key users
+# and the budget alert, and skips what exists only for Alexa (the Alexa tool, the Anthropic key,
+# the skill's code and its connection). It never removes a back end an earlier run built.
 # Safe to re-run: each stage checks or replaces what an earlier run made.
 # ──────────────────────────────────────────────────────────────────────────
+
+usage() {
+  printf 'usage: bash alexa/setup/voice-setup.sh <the Martha Meals skill id>\n' >&2
+  printf '   or: bash alexa/setup/voice-setup.sh --sharing-only   (one shared profile, no Alexa)\n' >&2
+}
+SHARING_ONLY=""
+SKILL_ID_GIVEN=""
+for arg in "$@"; do
+  case "$arg" in
+    --sharing-only) SHARING_ONLY=1 ;;
+    -*) warn "This script doesn't know the option $arg."; usage; exit 2 ;;
+    *)  [[ -z "$SKILL_ID_GIVEN" ]] || { warn "One skill id at a time."; usage; exit 2; }
+        SKILL_ID_GIVEN="$arg" ;;
+  esac
+done
+if [[ -n "$SHARING_ONLY" && -n "$SKILL_ID_GIVEN" ]]; then
+  warn "--sharing-only builds without the Alexa skill, so it takes no skill id."
+  warn "To build with the skill, run this with the skill id alone."
+  usage; exit 2
+fi
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
@@ -227,10 +252,14 @@ _find() {
 }
 AWS=$(_find aws "/c/Program Files/Amazon/AWSCLIV2/aws.exe" /usr/local/bin/aws) \
   || { warn "The AWS command-line tool isn't installed (VOICE-SETUP.md step 2)."; exit 1; }
-ASK=$(_find ask "${APPDATA:-/none}/npm/ask" "$HOME/AppData/Roaming/npm/ask") \
-  || { warn "The Alexa command-line tool isn't installed: npm install -g ask-cli, then ask configure (VOICE-SETUP.md step 1)."; exit 1; }
-NODE=$(_find node "/c/Program Files/nodejs/node.exe") || { warn "Node.js isn't installed (VOICE-SETUP.md step 1)."; exit 1; }
-NPM=$(_find npm "/c/Program Files/nodejs/npm") || { warn "npm isn't installed (VOICE-SETUP.md step 1)."; exit 1; }
+# The Alexa tool, Node.js and npm serve the skill alone: a sharing-only run never looks for them.
+ASK=""; NODE=""; NPM=""
+if [[ -z "$SHARING_ONLY" ]]; then
+  ASK=$(_find ask "${APPDATA:-/none}/npm/ask" "$HOME/AppData/Roaming/npm/ask") \
+    || { warn "The Alexa command-line tool isn't installed: npm install -g ask-cli, then ask configure (VOICE-SETUP.md step 1)."; exit 1; }
+  NODE=$(_find node "/c/Program Files/nodejs/node.exe") || { warn "Node.js isn't installed (VOICE-SETUP.md step 1)."; exit 1; }
+  NPM=$(_find npm "/c/Program Files/nodejs/npm") || { warn "npm isn't installed (VOICE-SETUP.md step 1)."; exit 1; }
+fi
 PY=""
 for c in python3 python py; do
   if command -v "$c" >/dev/null 2>&1 && "$c" --version >/dev/null 2>&1; then PY="$c"; break; fi
@@ -246,12 +275,26 @@ skill_status() {
     | grep -o '"status": *"[A-Z_]*"' | head -n 1 | grep -o '[A-Z_]*"$' | tr -d '"'
 }
 
-TOTAL_STAGES=6
-banner "Martha voice notes: the AWS side"
+# One value from the build AWS already holds, as plain text. Fails when AWS does.
+stack_value() {
+  "$AWS" cloudformation describe-stacks --stack-name "$STACK" --output text --query "$1" | tr -d '\r'
+}
+
+if [[ -n "$SHARING_ONLY" ]]; then
+  TOTAL_STAGES=4
+  banner "Martha's shared household: the AWS side"
+else
+  TOTAL_STAGES=6
+  banner "Martha voice notes: the AWS side"
+fi
 
 # ── 1 ─────────────────────────────────────────────────────────────────────
 stage "An AWS account for the household"
-say "Voice notes wait in a small table in your own AWS account. Expected cost: \$0 a month."
+if [[ -n "$SHARING_ONLY" ]]; then
+  say "The shared profile lives in a small table in your own AWS account. Expected cost: \$0 a month."
+else
+  say "Voice notes wait in a small table in your own AWS account. Expected cost: \$0 a month."
+fi
 say "Already have the account? Press Enter."
 open_url "https://portal.aws.amazon.com/billing/signup"
 step "Sign up with an email you check; keep the password in your password manager."
@@ -289,32 +332,84 @@ say "Building in region ${AWS_DEFAULT_REGION}."
 pause
 
 # ── 3 ─────────────────────────────────────────────────────────────────────
-stage "Build the voice-notes pieces in AWS"
-say "The notes table, the skill's back end, a narrow key user for this computer,"
-say "and a \$1 monthly budget alert."
-SKILL_ID="${1:-}"
-[[ -n "$SKILL_ID" ]] || ask SKILL_ID "The Martha Meals skill id (amzn1.ask.skill...):"
-[[ "$SKILL_ID" =~ ^amzn1\.ask\.skill\.[0-9a-f-]+$ ]] || { warn "That isn't a skill id (VOICE-SETUP.md step 1)."; exit 1; }
-write_env SKILL_ID "$SKILL_ID"
+if [[ -n "$SHARING_ONLY" ]]; then
+  stage "Build the shared-household pieces in AWS"
+  say "The table, narrow key users for this computer, a second computer and a phone,"
+  say "and a \$1 monthly budget alert. No Alexa skill and no back end."
+else
+  stage "Build the voice-notes pieces in AWS"
+  say "The notes table, the skill's back end, a narrow key user for this computer,"
+  say "and a \$1 monthly budget alert."
+fi
+# A sharing-only run first reads what an earlier run built here, if anything. The build's own
+# record of its skill id is what counts: building again without that id would delete the skill's
+# back end. So this run passes the id on, and stops when it can't tell.
+if [[ -n "$SHARING_ONLY" ]]; then
+  BUILT_SKILL_ID=""
+  BUILT_BACK_END=""
+  if built=$("$AWS" cloudformation describe-stacks --stack-name "$STACK" --output text \
+               --query 'Stacks[0].StackName' 2>&1); then
+    BUILT_SKILL_ID=$(stack_value "Stacks[0].Parameters[?ParameterKey=='AlexaSkillId'].ParameterValue | [0]") \
+      || { warn "AWS didn't say what is already built here, so nothing was changed. Run this again."; exit 1; }
+    BUILT_BACK_END=$(stack_value "Stacks[0].Outputs[?OutputKey=='FunctionArn'].OutputValue | [0]") \
+      || { warn "AWS didn't say what is already built here, so nothing was changed. Run this again."; exit 1; }
+    [[ "$BUILT_BACK_END" == None ]] && BUILT_BACK_END=""
+    if [[ -n "$BUILT_SKILL_ID" && ! "$BUILT_SKILL_ID" =~ ^amzn1\.ask\.skill\.[0-9a-f-]+$ ]]; then
+      # Something is built here but its skill id can't be read: treated as "has a back end".
+      BUILT_SKILL_ID=""
+      BUILT_BACK_END="unknown"
+    fi
+  elif [[ "$built" != *"does not exist"* ]]; then
+    warn "AWS didn't say whether Martha was built here before, so nothing was changed. Run this again."
+    exit 1
+  fi
+  if [[ -n "$BUILT_SKILL_ID" ]]; then
+    SKILL_ID="$BUILT_SKILL_ID"
+    say "This account already has the Martha Meals skill's back end. It stays exactly as it is:"
+    say "this run only brings the shared-household pieces up to date."
+    write_env SKILL_ID "$SKILL_ID"
+  elif [[ -n "$BUILT_BACK_END" ]]; then
+    warn "This account already has the Martha Meals skill's back end, but AWS didn't say which skill"
+    warn "it belongs to. A sharing-only build would remove it, so nothing was changed. Run this with"
+    warn "the skill id instead: bash alexa/setup/voice-setup.sh <skill id> (VOICE-SETUP.md step 2)."
+    exit 1
+  else
+    SKILL_ID=""
+  fi
+else
+  SKILL_ID="$SKILL_ID_GIVEN"
+  [[ -n "$SKILL_ID" ]] || ask SKILL_ID "The Martha Meals skill id (amzn1.ask.skill...):"
+  [[ "$SKILL_ID" =~ ^amzn1\.ask\.skill\.[0-9a-f-]+$ ]] || { warn "That isn't a skill id (VOICE-SETUP.md step 1)."; exit 1; }
+  write_env SKILL_ID "$SKILL_ID"
+fi
 ask BUDGET_EMAIL "Email for the budget alert (AWS writes only if a month costs over \$1):"
 [[ "$BUDGET_EMAIL" == *@*.* ]] || { warn "That isn't an email address."; exit 1; }
 write_env BUDGET_EMAIL "$BUDGET_EMAIL"
 note "Building. This takes one to three minutes."
+# An empty skill id is never passed to AWS. Left out, a new build takes the template's empty
+# default (no back end), and a build that already has a skill id keeps it.
+OVERRIDES=()
+if [[ -n "$SKILL_ID" ]]; then OVERRIDES+=("AlexaSkillId=$SKILL_ID"); fi
+OVERRIDES+=("BudgetEmail=$BUDGET_EMAIL")
 if ! "$AWS" cloudformation deploy --stack-name "$STACK" \
      --template-file "$(winpath "$ROOT/alexa/infra/martha-voice.yaml")" \
      --capabilities CAPABILITY_NAMED_IAM --no-fail-on-empty-changeset \
-     --parameter-overrides "AlexaSkillId=$SKILL_ID" "BudgetEmail=$BUDGET_EMAIL"; then
+     --parameter-overrides "${OVERRIDES[@]}"; then
   warn "AWS couldn't build it. What it said:"
   "$AWS" cloudformation describe-stack-events --stack-name "$STACK" --output text \
     --query "StackEvents[?contains(ResourceStatus,'FAILED')].[LogicalResourceId,ResourceStatusReason]" | head -n 8
   exit 1
 fi
-FUNCTION_ARN=$("$AWS" cloudformation describe-stacks --stack-name "$STACK" --output text \
-  --query "Stacks[0].Outputs[?OutputKey=='FunctionArn'].OutputValue")
+FUNCTION_ARN=""
+if [[ -z "$SHARING_ONLY" ]]; then
+  FUNCTION_ARN=$("$AWS" cloudformation describe-stacks --stack-name "$STACK" --output text \
+    --query "Stacks[0].Outputs[?OutputKey=='FunctionArn'].OutputValue")
+fi
 say "Built."
 pause
 
-# ── 4 ─────────────────────────────────────────────────────────────────────
+# ── 4 (Alexa only: a sharing-only run skips it) ───────────────────────────
+if [[ -z "$SHARING_ONLY" ]]; then
 stage "The Anthropic API key for Alexa's read-back"
 say "Alexa repeats back what she understood using Claude Haiku. That needs an Anthropic API key,"
 say "billed apart from any Claude plan: about 15 cents a month at ten notes a day."
@@ -338,11 +433,17 @@ else
   warn "No key saved yet. Alexa will save notes as said, without the read-back, until you re-run this."
 fi
 pause
+fi  # end of the Anthropic key stage (Alexa only)
 
-# ── 5 ─────────────────────────────────────────────────────────────────────
+# ── 5 (stage 4 of a sharing-only run) ─────────────────────────────────────
 stage "Give this computer its own narrow key"
-say "Martha reads and deletes notes with a key that can't reach anything else in the account."
-say "It goes straight from AWS into Martha's credentials file; it is never shown."
+if [[ -n "$SHARING_ONLY" ]]; then
+  say "Martha reads and saves the shared profile with a key that can't reach anything else in the"
+  say "account. It goes straight from AWS into Martha's credentials file; it is never shown."
+else
+  say "Martha reads and deletes notes with a key that can't reach anything else in the account."
+  say "It goes straight from AWS into Martha's credentials file; it is never shown."
+fi
 keys=$("$AWS" iam list-access-keys --user-name "$PC_USER" --query 'length(AccessKeyMetadata)' --output text)
 if [[ "$keys" -ge 2 ]]; then
   warn "This computer's user already has two keys, the most AWS allows. In the AWS console, open"
@@ -355,17 +456,33 @@ read -r MARTHA_VOICE_KEY_ID MARTHA_VOICE_SECRET < <("$AWS" iam create-access-key
 # The region goes with the key: without it Martha would look for the notes in us-east-1.
 MARTHA_VOICE_REGION="$AWS_DEFAULT_REGION"
 export MARTHA_VOICE_KEY_ID MARTHA_VOICE_SECRET MARTHA_VOICE_REGION
+if [[ -n "$SHARING_ONLY" && -z "${MARTHA_VOICE_PERSON:-}" ]]; then
+  # Shown in the shared household's who-changed-what log. Not secrets; Enter skips each.
+  MARTHA_VOICE_PERSON=""
+  MARTHA_VOICE_DEVICE="${MARTHA_VOICE_DEVICE:-}"
+  ask MARTHA_VOICE_PERSON "First name of the person who uses this computer (Enter to skip):"
+  [[ -n "$MARTHA_VOICE_DEVICE" ]] \
+    || ask MARTHA_VOICE_DEVICE "A name for this computer, such as 'the kitchen PC' (Enter to skip):"
+  export MARTHA_VOICE_PERSON MARTHA_VOICE_DEVICE
+fi
 note "Waiting 15 seconds for AWS to switch the new key on..."
 sleep 15
 if "$PY" "$(winpath "$ROOT/.claude/skills/martha/scripts/martha_voice.py")" setup --from-env; then
-  say "This computer can read Martha's notes."
+  if [[ -n "$SHARING_ONLY" ]]; then
+    # The same check PROFILE.md gives the second computer: may this key read the shared profile?
+    "$PY" "$(winpath "$ROOT/.claude/skills/martha/scripts/martha_household.py")" check \
+      || warn "The key is saved, but the shared household didn't answer; the message above says why."
+  else
+    say "This computer can read Martha's notes."
+  fi
 else
   warn "The key is saved but the check failed; the message above says why (VOICE-SETUP.md step 6)."
 fi
 unset MARTHA_VOICE_KEY_ID MARTHA_VOICE_SECRET
 pause
 
-# ── 6 ─────────────────────────────────────────────────────────────────────
+# ── 6 (Alexa only: a sharing-only run skips it) ───────────────────────────
+if [[ -z "$SHARING_ONLY" ]]; then
 stage "Upload the skill's code and connect it to Alexa"
 build=$(mktemp -d)
 cp -r "$ROOT/alexa/lambda/index.js" "$ROOT/alexa/lambda/lib" "$ROOT/alexa/lambda/package.json" \
@@ -397,10 +514,19 @@ done
 "$ASK" smapi set-skill-enablement --skill-id "$SKILL_ID" --stage development >/dev/null 2>&1 || true
 say "Connected. Alexa now sends Martha Meals' notes to your AWS account."
 pause
+fi  # end of the upload-and-connect stage (Alexa only)
 
 finish
-say "Try it: \"Alexa, ask Martha Meals to note that we're out of ground cumin.\""
-say "Then, from the Martha folder: python .claude/skills/martha/scripts/martha_voice.py notes"
-say "Last step: turn voice notes on for Martha (VOICE-SETUP.md step 7)."
+if [[ -n "$SHARING_ONLY" ]]; then
+  say "This computer is ready to share its profile. Next (PROFILE.md, Sharing one profile):"
+  say "make the second computer's key: bash alexa/setup/voice-key.sh computer2"
+  say "then tell Martha \"share our profile\" on each computer."
+  say "To add voice notes later, make the Alexa skill (VOICE-SETUP.md step 1) and run this"
+  say "script again with the skill id in place of --sharing-only."
+else
+  say "Try it: \"Alexa, ask Martha Meals to note that we're out of ground cumin.\""
+  say "Then, from the Martha folder: python .claude/skills/martha/scripts/martha_voice.py notes"
+  say "Last step: turn voice notes on for Martha (VOICE-SETUP.md step 7)."
+fi
 printf '\n'
 

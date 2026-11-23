@@ -31,6 +31,48 @@ Linux type `python3`.
 that's ever wrong), and about 15 cents a month of Anthropic API use for the read-back at ten
 notes a day.
 
+## Only sharing a profile, no Alexa
+
+Two people can share one Martha profile (`PROFILE.md`, Sharing one profile) without voice notes.
+Sharing needs only the table, the computers' keys and the budget alert, and the setup script
+builds just those when it is run this way, from the folder you cloned Martha into:
+
+```
+bash alexa/setup/voice-setup.sh --sharing-only
+```
+
+On Windows, type that in Git Bash. From PowerShell the same command is the line below (step 2,
+part 3 says why):
+
+```
+& "C:\Program Files\Git\bin\bash.exe" alexa/setup/voice-setup.sh --sharing-only
+```
+
+For this you need an AWS account, the AWS command-line tool and Python 3.9 or newer. You don't
+need an Echo, an Amazon developer account, an Anthropic API key or Node.js. The AWS cost is the
+same: about $0 a month, with the $1 budget alert.
+
+| Step on this page | When only sharing |
+|---|---|
+| 1. Make the Alexa skill | Skip. |
+| 2. The AWS pieces | Do parts 1 and 2: the account and the AWS command-line tool. For part 3, run the command above. It has four stages: the account, the sign-in, the build, this computer's key. |
+| 3. What "connect" did | Skip. |
+| 4. The Anthropic API key | Skip. |
+| 5. Leave a first note | Skip. |
+| 6. Give this computer its key | The script already did it. "A new key for this computer" and "A second computer" apply as written; the second computer's key is the next thing to make. |
+| Reading notes from a phone | Optional. The phone key reads the shared profile. |
+| 7. Turn voice notes on | Skip. Turn sharing on instead (`PROFILE.md`, Sharing one profile). |
+
+Then carry on in `PROFILE.md`, Sharing one profile, at its step 2.
+
+To add voice notes later, do step 1 and then run the script the usual way, with the skill id
+(step 2). That adds the skill's back end to the same build and keeps the table and the keys. In
+a household that already has voice notes, the sharing-only command leaves them as they are: the
+script reads the skill id from the build and keeps it, and stops if it can't tell.
+
+This way of building is tested offline only. It has not yet been run against AWS (Not yet
+tested, at the end of this page).
+
 ## 1. Make the Alexa skill "Martha Meals"
 
 The skill is private to your household: it is never published, so only devices on your Amazon
@@ -322,4 +364,17 @@ first computer saved a profile; the second computer's key read it back identical
 change; a save from an out-of-date copy was refused; and the first computer's `pull` took the
 change. Not yet run live: a `pull` that has to merge or ask (`settled`), the phone key reading
 the shared profile, and the Cowork and phone paths in `SKILL.md` Step 0.
+
+Building without the Alexa skill (`voice-setup.sh --sharing-only`) has not been run against AWS.
+To allow it, the build template and both setup scripts changed, and every live run above was
+made before that change. What is tested, offline: the template is read to check that everything
+only the skill uses is left out when no skill id is given, and that the table, the key users and
+the budget alert are always built; and both scripts are run against stand-in programs to check
+what they would ask AWS for. A sharing-only build names no skill and skips the Alexa stages; a
+build that already has the skill keeps it; `voice-key.sh` passes on the skill id the build has;
+and each of the three keys can be made against a sharing-only build. Not yet run live: a new
+sharing-only build, an update of a build made before the change (it should leave the skill's
+back end untouched), a key made against a sharing-only build, and adding the skill to a
+sharing-only build afterwards.
+
 If a step fails, open an issue with the message it printed (never the credentials file).

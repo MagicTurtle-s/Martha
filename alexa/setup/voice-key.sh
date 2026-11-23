@@ -3,7 +3,9 @@
 # Martha voice notes: a new key for this computer, a key for a second computer in the household, or
 # a read-only key for a phone's Claude (VOICE-SETUP.md, "A new key for this computer", "A second
 # computer" and "Reading notes from a phone"). Run it after voice-setup.sh has built everything
-# once, in Git Bash on Windows or a terminal on macOS or Linux:
+# once, with a skill id or with --sharing-only: every key here works against either build, since
+# none of them touches the Alexa skill's back end. In Git Bash on Windows or a terminal on macOS
+# or Linux:
 #   bash alexa/setup/voice-key.sh computer    # replaces this computer's key file
 #   bash alexa/setup/voice-key.sh computer2   # makes a key file to carry to a second computer
 #   bash alexa/setup/voice-key.sh phone       # makes a read-only key file for a phone
@@ -61,14 +63,14 @@ done
 winpath() { if command -v cygpath >/dev/null 2>&1; then cygpath -w "$1"; else printf '%s' "$1"; fi; }
 aws_text() { "$AWS" "$@" --output text | tr -d '\r'; }
 
-# What voice-setup.sh remembered: the skill id and the budget email (never a secret).
+# What voice-setup.sh remembered: the budget email (never a secret). The skill id is read from the
+# build itself further down, because a sharing-only build (voice-setup.sh --sharing-only) has none.
 [[ -f "$ENV_FILE" ]] || { warn "No $ENV_FILE: run voice-setup.sh first (VOICE-SETUP.md step 2)."; exit 1; }
-SKILL_ID=$(grep -m1 '^SKILL_ID=' "$ENV_FILE" | cut -d= -f2- | tr -d '\r' || true)
 BUDGET_EMAIL=$(grep -m1 '^BUDGET_EMAIL=' "$ENV_FILE" | cut -d= -f2- | tr -d '\r' || true)
-[[ -n "$SKILL_ID" && -n "$BUDGET_EMAIL" ]] \
-  || { warn "$ENV_FILE is missing the skill id or budget email: run voice-setup.sh again."; exit 1; }
+[[ -n "$BUDGET_EMAIL" ]] \
+  || { warn "$ENV_FILE is missing the budget email: run voice-setup.sh again."; exit 1; }
 
-printf '\n  Martha voice notes: a new %s key\n\n' "$LABEL"
+printf '\n  Martha: a new %s key\n\n' "$LABEL"
 if ! "$AWS" sts get-caller-identity >/dev/null 2>&1; then
   say "Signing this computer in to AWS. A browser window opens."
   "$AWS" login || { warn "The sign-in didn't finish. Run this again when you're ready."; exit 1; }
@@ -85,11 +87,42 @@ if [[ -z "${AWS_DEFAULT_REGION:-}" ]]; then
 fi
 [[ -n "${AWS_DEFAULT_REGION:-}" ]] || { warn "No Martha build found in any region: run voice-setup.sh first."; exit 1; }
 
+# Whether the build has the Alexa skill's back end is the build's to say, never this script's.
+# The skill id the build already has is passed on unchanged, and a sharing-only build (no skill
+# id, no back end) stays that way, so making a key can neither add nor remove the back end.
+STACK_UNREADABLE="AWS didn't say what is built in ${AWS_DEFAULT_REGION}, so nothing was changed. Run this again."
+SKILL_ID=$(aws_text cloudformation describe-stacks --stack-name "$STACK" \
+  --query "Stacks[0].Parameters[?ParameterKey=='AlexaSkillId'].ParameterValue | [0]") \
+  || { warn "$STACK_UNREADABLE"; exit 1; }
+BACK_END=$(aws_text cloudformation describe-stacks --stack-name "$STACK" \
+  --query "Stacks[0].Outputs[?OutputKey=='FunctionArn'].OutputValue | [0]") \
+  || { warn "$STACK_UNREADABLE"; exit 1; }
+[[ "$BACK_END" == None ]] && BACK_END=""
+if [[ -n "$SKILL_ID" && ! "$SKILL_ID" =~ ^amzn1\.ask\.skill\.[0-9a-f-]+$ ]]; then
+  SKILL_ID=""
+  BACK_END="unknown"  # built, but its skill id can't be read: treated as "has a back end"
+fi
+if [[ -z "$SKILL_ID" && -n "$BACK_END" ]]; then
+  # The build has a back end but didn't give its skill id: use the one voice-setup.sh wrote down
+  # when it built it, and stop if there is none.
+  SKILL_ID=$(grep -m1 '^SKILL_ID=' "$ENV_FILE" | cut -d= -f2- | tr -d '\r' || true)
+  if [[ ! "$SKILL_ID" =~ ^amzn1\.ask\.skill\.[0-9a-f-]+$ ]]; then
+    warn "This build has the Martha Meals skill's back end, but AWS didn't say which skill it belongs"
+    warn "to. Updating the build without that id would remove the back end, so nothing was changed."
+    warn "Run voice-setup.sh with the skill id (VOICE-SETUP.md step 2), then this again."
+    exit 1
+  fi
+fi
+# An empty skill id is never passed to AWS: left out, the build keeps the value it has.
+OVERRIDES=()
+if [[ -n "$SKILL_ID" ]]; then OVERRIDES+=("AlexaSkillId=$SKILL_ID"); fi
+OVERRIDES+=("BudgetEmail=$BUDGET_EMAIL")
+
 say "1/4 Updating the build in ${AWS_DEFAULT_REGION}..."
 if ! "$AWS" cloudformation deploy --stack-name "$STACK" \
      --template-file "$(winpath "$ROOT/alexa/infra/martha-voice.yaml")" \
      --capabilities CAPABILITY_NAMED_IAM --no-fail-on-empty-changeset \
-     --parameter-overrides "AlexaSkillId=$SKILL_ID" "BudgetEmail=$BUDGET_EMAIL" >/dev/null; then
+     --parameter-overrides "${OVERRIDES[@]}" >/dev/null; then
   warn "AWS couldn't update the build. What it said:"
   aws_text cloudformation describe-stack-events --stack-name "$STACK" \
     --query "StackEvents[?contains(ResourceStatus,'FAILED')].[LogicalResourceId,ResourceStatusReason]" | head -n 8
@@ -190,5 +223,5 @@ elif [[ "$WHO" == computer2 ]]; then
   say "never email or a chat), put it in that computer's profile folder, then delete it here."
   say "VOICE-SETUP.md, 'A second computer', has the rest, and how to cancel the key."
 else
-  say "Done. This computer reads Martha's notes again."
+  say "Done. This computer's new key works: Martha reads the notes and the shared profile again."
 fi

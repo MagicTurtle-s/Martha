@@ -19,8 +19,8 @@ household places the order.
 | `martha-memory.json` | Recipes, ratings and past weeks. Lives in the profile folder. Schema and rules: `MEMORY.md`. |
 | `kroger-credentials.json` | The household's Kroger API app and sign-in token. Lives in the profile folder. Setup: `KROGER-SETUP.md`. Without it Martha runs plan-only. |
 | `pinterest-credentials.json` | Optional, for a Pinterest recipe board. Setup: `PINTEREST-SETUP.md`. |
-| `voice-credentials.json` | Optional, for voice notes: this computer's AWS key. Lives in the profile folder. |
-| `VOICE-SETUP.md` | Optional voice notes through the household's own Alexa skill ("Alexa, ask Martha Meals to note that we're out of cumin"): the AWS side, the skill, and this computer's key. |
+| `voice-credentials.json` | Optional, for voice notes, a shared household, or both: this computer's AWS key. Lives in the profile folder. |
+| `VOICE-SETUP.md` | Optional voice notes through the household's own Alexa skill ("Alexa, ask Martha Meals to note that we're out of cumin"): the AWS side, the skill, and this computer's key. Also the AWS side of a shared household, which can be built alone, with no Alexa skill. |
 | `config-example.md` | The config's structure, filled in for a made-up household. |
 | `PROFILE.md` | For the user: where the profile can live, how to move it, back it up or keep it in git. |
 | `QUANTITY-MATH.md` | Scaling, standing-order rules, budget arithmetic, ranked cuts. Read it before Step 5. |
@@ -121,8 +121,10 @@ since `done` and `context` refuse it. They are filed at the next run on the hous
 
 **Shared household** is on only when the config's Shared household row says `on` AND
 `python3 scripts/martha_household.py check` passes. One copy of the config, the memory and the
-plan files then lives in the household's own table (the voice-notes build), and each person's
-computer works from it (`PROFILE.md`, Sharing one profile). Row off or blank: say nothing about
+plan files then lives in a small table in the household's own AWS account, and each person's
+computer works from it (`PROFILE.md`, Sharing one profile). It does not need voice notes or an
+Alexa skill: the table is the one voice notes use when a household has both, and it can be built
+alone (`VOICE-SETUP.md`, Only sharing a profile). Row off or blank: say nothing about
 it all run. Row on but the check fails: one line with the reason it printed, then run on this
 computer's files as they are. Like the voice client it is run from the command line, never
 imported, and it can't read or send a credentials file: every computer keeps its own Kroger
@@ -671,7 +673,7 @@ must be public. Store
 | "We loved that chili" | The feedback path in `MEMORY.md` |
 | "Set up voice notes" | Walks through `VOICE-SETUP.md`. The user runs step 6 (`martha_voice.py setup`) in their own terminal: the AWS secret is typed there, never in chat. Then sets the config's Voice notes row to `on` |
 | "Who changed what?" | `python3 scripts/martha_household.py log`: the last ten saves to the shared household, newest first, with who made each and from which computer |
-| "Share our profile" | Walks through `PROFILE.md`, Sharing one profile. The user runs the key script in their own terminal. Then sets the config's Shared household row to `on` |
+| "Share our profile" | Walks through `PROFILE.md`, Sharing one profile. Voice notes are not needed: without them the user first builds the table with the setup script's sharing-only form. The user runs the setup and key scripts in their own terminal. Then sets the config's Shared household row to `on` |
 
 ## Non-negotiables
 
