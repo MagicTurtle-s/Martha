@@ -23,8 +23,9 @@ Credentials: voice-credentials.json (fields in VOICE-SETUP.md step 6), found in 
   ~/.martha/voice-credentials.json
 Unlike the Kroger client, nothing is read at import: `setup` has to run before the file exists.
 
-The signing is checked against AWS's published Signature Version 4 example (tests); the calls
-themselves have not yet been run against a live table from this file.
+The signing is checked against AWS's published Signature Version 4 example (tests). Against a
+live table, `check`, `notes` and `done` have run; `context` has not (VOICE-SETUP.md, Not yet
+tested).
 """
 import os, re, sys, json, glob, hmac, time, getpass, hashlib, http.client, urllib.request, urllib.error
 from datetime import datetime, timezone

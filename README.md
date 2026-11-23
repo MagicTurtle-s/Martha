@@ -23,6 +23,7 @@ The cart needs a Kroger store in the US. Kroger's API also lists its family stor
 - **Optional nutrition standard.** Plans can follow the [ZOE](https://zoe.com) approach of 30 different plants a week, or a macro target, or neither.
 - **Writes the plan where you'll see it.** A plan file in your profile folder, and optionally an Apple Note. It can also read your Alexa shopping list into the cart and check off what it added.
 - **Takes notes by voice (optional).** Through an Alexa skill of your own, anyone in the house can say "Alexa, ask Martha Meals to note that we're out of cumin" or "Alexa, ask Martha Meals to note that Sam loved the chili"; the notes wait in your own AWS account, and the next run shows each one and files it. Setup: [VOICE-SETUP.md](.claude/skills/martha/VOICE-SETUP.md).
+- **One profile for two people (optional).** Two people who each run Martha on their own computer can share one set of preferences, ratings and plans: what one changes, the other's next run starts from, and a change is never overwritten without a question. The shared copy lives in a small table in your own AWS account; it needs no Alexa. Setup: [PROFILE.md](.claude/skills/martha/PROFILE.md).
 
 What it never does: place the order, check out, or pay. The cart is yours to review.
 

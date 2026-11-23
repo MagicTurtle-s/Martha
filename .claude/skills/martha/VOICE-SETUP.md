@@ -76,7 +76,11 @@ tested, at the end of this page).
 ## 1. Make the Alexa skill "Martha Meals"
 
 The skill is private to your household: it is never published, so only devices on your Amazon
-account can use it.
+account can use it (Other people in the house, below, covers a second account).
+
+If an earlier try left another skill with a similar name on the account ("Martha Meal", "martha
+test"), delete it in the developer console first. Alexa picks between two near-identical names,
+and a note that goes to the old one never arrives.
 
 1. Sign in at [developer.amazon.com](https://developer.amazon.com) with the household's Amazon
    account. If it asks to register, choose an individual (sole proprietor) account; no business is
@@ -169,6 +173,8 @@ python .claude/skills/martha/scripts/martha_voice.py notes
 | "Got it, I'll pass on: ..." | The note is saved, but the read-back isn't working: re-run the script and redo stage 4. |
 | She starts a text message | Say "Alexa, ask Martha Meals to note that ..." instead (see the top of this page). |
 | "Sorry, that is not supported on this device" | That device won't open the skill by itself: say the whole note in one go, "Alexa, ask Martha Meals to note that ...". |
+| "Sorry, I can't assist with that request", or she answers and no note arrives | Alexa didn't hand your words to the skill. Say its name exactly as you spelled it in step 1, say the whole note in one go ("Alexa, ask Martha Meals to note that ..."), and delete any older skill with a similar name (step 1). The `notes` command shows what did arrive. |
+| The skill isn't there for someone else in the house | They are on their own Amazon account: see Other people in the house, below. |
 | "There was a problem with the requested skill's response" | The skill and the back end aren't connected: re-run the script. |
 
 ## 6. Give this computer its key
@@ -270,6 +276,37 @@ Running `voice-key.sh computer` once more on the first computer adds the same tw
 own key file. The keys can read and save the shared profile but never delete from it, and a save
 only goes through when it builds on the latest copy. To cancel the second computer: AWS console >
 IAM > Users > `martha-voice-pc-2` > Security credentials > Deactivate (or Delete) the key.
+
+## Other people in the house
+
+The skill belongs to the Amazon account that made it. What that means for everyone else:
+
+- **A speaker or phone signed in to that account:** anyone who talks to it can leave a note.
+- **Someone with their own Amazon account** (their own Alexa app, or a shared speaker after
+  "Alexa, switch accounts"): expect the skill not to be there. A skill that was never published
+  is tied to the account that made it, and that includes the other adult in an Amazon Household.
+  This is how Amazon describes it; it has not been tried here on a second account.
+
+Don't publish the skill to Alexa's store to get around this. It keeps one household's notes in
+one table, so anyone who found it would be writing into yours, and using your Anthropic credit.
+
+To let a second account use it, Amazon has an invitation, which it calls a beta test, that keeps
+the skill out of the store. These are Amazon's steps as its help page gave them in November
+2026. They have not been run here:
+
+1. In the Alexa developer console, open the skill, then Distribution. Fill in every required
+   field under Skill Preview and under Privacy & Compliance, and check that Certification >
+   Validation passes. Nothing is sent for review.
+2. Distribution > Availability > Beta Test > Start Test.
+3. Under Manage link access, enter the other person's email address and choose Add. It must be
+   the address of the Amazon account their Alexa app or speaker is signed in to.
+4. Under Share link, choose Copy link and send it to them yourself. Amazon no longer emails it.
+5. They open the link on their phone, sign in to their own Amazon account and accept the terms.
+   Then they switch the skill on in their Alexa app, where its icon carries a "dev" tag.
+
+Amazon's limits: an invitation nobody takes up within 30 days is withdrawn, and a test ends
+after 90 days and can't be extended, so it is started again the same way. Their notes land in
+the same table as yours, and the next Martha run files them together.
 
 ## Reading notes from a phone (optional)
 
