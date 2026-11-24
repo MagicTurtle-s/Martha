@@ -291,22 +291,44 @@ Don't publish the skill to Alexa's store to get around this. It keeps one househ
 one table, so anyone who found it would be writing into yours, and using your Anthropic credit.
 
 To let a second account use it, Amazon has an invitation, which it calls a beta test, that keeps
-the skill out of the store. These are Amazon's steps as its help page gave them in November
-2026. They have not been run here:
+the skill out of the store. One household ran these steps on 2026-11-24: the invitation was
+created and started, and Amazon gave back a link. Whether the invited person can then use the
+skill has not been seen yet.
 
-1. In the Alexa developer console, open the skill, then Distribution. Fill in every required
-   field under Skill Preview and under Privacy & Compliance, and check that Certification >
-   Validation passes. Nothing is sent for review.
-2. Distribution > Availability > Beta Test > Start Test.
-3. Under Manage link access, enter the other person's email address and choose Add. It must be
-   the address of the Amazon account their Alexa app or speaker is signed in to.
-4. Under Share link, choose Copy link and send it to them yourself. Amazon no longer emails it.
-5. They open the link on their phone, sign in to their own Amazon account and accept the terms.
-   Then they switch the skill on in their Alexa app, where its icon carries a "dev" tag.
+1. **Complete the skill's listing.** Amazon refuses to start an invitation until the skill has a
+   category and an icon in two sizes (108 and 512 pixels square, PNG). The category is already
+   in `alexa/skill-package/skill.json`. Upload the icons in the Alexa developer console: the
+   skill, then Distribution > Skill Preview. Any simple picture will do; only the people you
+   invite see it.
+2. **Create the invitation, add the person, start it:**
 
-Amazon's limits: an invitation nobody takes up within 30 days is withdrawn, and a test ends
-after 90 days and can't be extended, so it is started again the same way. Their notes land in
-the same table as yours, and the next Martha run files them together.
+   ```
+   ask smapi create-beta-test --skill-id <skill id>
+   ask smapi add-testers-to-beta-test --skill-id <skill id> --testers-emails <their email>
+   ask smapi start-beta-test --skill-id <skill id>
+   ```
+
+   The email must be the address of the Amazon account their Alexa app or speaker is signed in
+   to. If the start is refused, the console's Distribution > Availability > Beta Test page says
+   what is missing.
+3. **Get the link and send it to them yourself.** Amazon no longer emails it.
+
+   ```
+   ask smapi get-beta-test --skill-id <skill id>
+   ```
+
+   It shows `invitationUrl` and `expiryDate`, the day the invitation ends.
+4. **They accept.** They open the link on their phone, sign in to their own Amazon account and
+   accept the terms. Then they switch the skill on in their Alexa app, where its icon carries a
+   "dev" tag.
+
+The same steps exist as buttons in the console, under Distribution > Availability > Beta Test.
+
+Amazon's limits: an invitation nobody takes up within 30 days is withdrawn, and it ends after 90
+days and can't be extended, so it is made again the same way. Running the setup script again
+rewrites the skill's listing from `skill.json`, which drops the uploaded icons: upload them
+again before the next invitation. Their notes land in the same table as yours, and the next
+Martha run files them together.
 
 ## Reading notes from a phone (optional)
 

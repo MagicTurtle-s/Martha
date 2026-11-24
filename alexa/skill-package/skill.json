@@ -15,6 +15,7 @@
           "keywords": ["meal planning", "grocery", "notes"]
         }
       },
+      "category": "COOKING_AND_RECIPE",
       "isAvailableWorldwide": false,
       "distributionCountries": ["US"],
       "testingInstructions": "Private household skill; not for publication."
